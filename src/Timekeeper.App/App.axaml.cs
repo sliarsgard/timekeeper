@@ -33,10 +33,15 @@ public partial class App : Application
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             var paths = AppPaths.Default;
+            var movedScreenshotsFrom = paths.MoveLegacyData();
             Directory.CreateDirectory(paths.DataDirectory);
             var settingsStore = new SettingsStore(paths);
             _settings = settingsStore.Load();
             var activityStore = new SqliteActivityStore(paths.DatabasePath);
+            if (movedScreenshotsFrom is not null)
+            {
+                activityStore.RelocateScreenshots(movedScreenshotsFrom, paths.ScreenshotDirectory);
+            }
             var timesheetStore = new SqliteTimesheetStore(paths.DatabasePath);
 
             _tracker = new ActivityTracker(activityStore, _settings.ToTrackerOptions(), paths.ScreenshotDirectory);

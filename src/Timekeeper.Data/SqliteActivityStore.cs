@@ -151,6 +151,21 @@ public sealed class SqliteActivityStore : IActivityStore
             ("$cutoff", ToDb(cutoffUtc))));
     }
 
+    /// <summary>Points stored screenshot paths at a folder the files have been moved to.</summary>
+    public void RelocateScreenshots(string oldDirectory, string newDirectory)
+    {
+        using var connection = Open();
+        Command(
+                connection,
+                """
+                UPDATE screenshots SET path = $new || substr(path, length($old) + 1)
+                WHERE substr(path, 1, length($old)) = $old
+                """,
+                ("$old", oldDirectory),
+                ("$new", newDirectory))
+            .ExecuteNonQuery();
+    }
+
     private static List<Screenshot> ReadScreenshots(SqliteCommand command)
     {
         using var reader = command.ExecuteReader();

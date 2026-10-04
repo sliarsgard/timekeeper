@@ -76,4 +76,18 @@ public sealed class SqliteActivityStoreTests : IDisposable
         Assert.Equal("old.jpg", Assert.Single(deleted).FilePath);
         Assert.Equal("new.jpg", Assert.Single(_store.GetScreenshots(segment.Id)).FilePath);
     }
+
+    [Fact]
+    public void RelocateScreenshots_rewrites_paths_under_the_old_folder_only()
+    {
+        var segment = Insert(T0, T0.AddMinutes(10));
+        _store.InsertScreenshot(new Screenshot { SegmentId = segment.Id, TakenUtc = T0, FilePath = @"C:\Old\screenshots\2026-10-05\080000-1.jpg" });
+        _store.InsertScreenshot(new Screenshot { SegmentId = segment.Id, TakenUtc = T0.AddMinutes(1), FilePath = @"D:\Elsewhere\a.jpg" });
+
+        _store.RelocateScreenshots(@"C:\Old\screenshots", @"C:\New\screenshots");
+
+        Assert.Equal(
+            [@"C:\New\screenshots\2026-10-05\080000-1.jpg", @"D:\Elsewhere\a.jpg"],
+            _store.GetScreenshots(segment.Id).Select(s => s.FilePath));
+    }
 }

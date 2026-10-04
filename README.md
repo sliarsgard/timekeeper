@@ -2,7 +2,7 @@
 
 Håller koll på vad du gör vid datorn under arbetsdagen och föreslår en tidslogg per kund i slutet av dagen.
 
-- **Aktivitet:** aktivt fönster, webbadress i Edge/Chrome, sökväg till öppna Office-dokument (även SharePoint), skärmdumpar med lokal textigenkänning. Allt sparas bara på datorn, i `%LOCALAPPDATA%\Timekeeper`.
+- **Aktivitet:** aktivt fönster, webbadress i Edge/Chrome, sökväg till öppna Office-dokument (även SharePoint), skärmdumpar med lokal textigenkänning. Allt sparas bara på datorn, i `%LOCALAPPDATA%\TimekeeperData` (skild från installationsmappen, så att data finns kvar vid uppdatering och avinstallation).
 - **Tidslogg:** kundnamn i fönstertitlar känns igen direkt. Resten klassas av Jev (TypeSafe AI), och när Jev är osäker tittar Luna (OpenAI GPT-6 Luna) på skärmdumpen. Luna skriver också kommentarerna. Raderna kan justeras och kopieras till Blikk.
 - **Kunder:** kundregister med sökord som kortnamn, organisationsnummer eller mappnamn.
 
