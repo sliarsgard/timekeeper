@@ -1,0 +1,27 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Timekeeper.App.ViewModels"
+             x:Class="Timekeeper.App.Views.DayHeader"
+             x:DataType="vm:DaySelection">
+    <!-- Page header with the shared day picker; the page title goes in Tag. -->
+    <Grid ColumnDefinitions="*,Auto">
+        <StackPanel Spacing="2">
+            <TextBlock Classes="label" Text="{Binding $parent[UserControl].Tag}" />
+            <StackPanel Orientation="Horizontal" Spacing="10">
+                <TextBlock Classes="h1" Text="{Binding Title}" />
+                <Border Classes="pill" Background="{StaticResource SurfaceRaisedBrush}" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding Subtitle}" FontSize="12" Classes="secondary" />
+                </Border>
+            </StackPanel>
+        </StackPanel>
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4" VerticalAlignment="Bottom">
+            <Button Classes="ghost icon" Command="{Binding PreviousCommand}" ToolTip.Tip="Föregående dag">
+                <TextBlock Classes="icon" Text="&#xE76B;" FontSize="12" />
+            </Button>
+            <Button Content="Idag" Command="{Binding TodayCommand}" IsEnabled="{Binding !IsToday}" />
+            <Button Classes="ghost icon" Command="{Binding NextCommand}" ToolTip.Tip="Nästa dag">
+                <TextBlock Classes="icon" Text="&#xE76C;" FontSize="12" />
+            </Button>
+        </StackPanel>
+    </Grid>
+</UserControl>

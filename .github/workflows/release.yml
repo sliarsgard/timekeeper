@@ -1,0 +1,54 @@
+name: Release
+
+# Pushing a tag like v0.2.0 builds the app, packs it with Velopack and publishes a GitHub
+# release. Installed copies find the release and offer "Starta om och uppdatera".
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          # vpk runs on .NET 8; the app targets .NET 9.
+          dotnet-version: |
+            8.0.x
+            9.0.x
+
+      - name: Read version from tag
+        id: version
+        shell: pwsh
+        run: echo "version=$('${{ github.ref_name }}'.TrimStart('v'))" >> $env:GITHUB_OUTPUT
+
+      - name: Test
+        run: dotnet test -c Release
+
+      - name: Publish
+        run: >
+          dotnet publish src/Timekeeper.App/Timekeeper.App.csproj -c Release -r win-x64 --self-contained
+          -p:Version=${{ steps.version.outputs.version }} -o publish
+
+      - name: Install vpk
+        # Keep in step with the Velopack package version in Timekeeper.App.csproj.
+        run: dotnet tool install -g vpk --version 1.2.161
+
+      - name: Fetch previous release for delta updates
+        run: vpk download github --repoUrl ${{ github.server_url }}/${{ github.repository }} --token ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pack
+        run: >
+          vpk pack --packId Timekeeper --packVersion ${{ steps.version.outputs.version }} --packDir publish
+          --mainExe Timekeeper.exe --packTitle Timekeeper --packAuthors "Simon Liarsgård"
+          --icon src/Timekeeper.App/Assets/timekeeper.ico
+
+      - name: Publish release
+        run: >
+          vpk upload github --repoUrl ${{ github.server_url }}/${{ github.repository }} --token ${{ secrets.GITHUB_TOKEN }}
+          --publish --releaseName "Timekeeper ${{ steps.version.outputs.version }}" --tag ${{ github.ref_name }}

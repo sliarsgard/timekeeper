@@ -1,0 +1,159 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Timekeeper.App.ViewModels"
+             xmlns:v="using:Timekeeper.App.Views"
+             xmlns:c="using:Timekeeper.App.Controls"
+             x:Class="Timekeeper.App.Views.ActivityView"
+             x:DataType="vm:ActivityPageViewModel">
+    <Grid Margin="32,4,32,28" ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto,*">
+        <v:DayHeader Grid.ColumnSpan="2" DataContext="{Binding Day}" Tag="AKTIVITET" Margin="0,0,0,22" />
+
+        <!-- Stat tiles -->
+        <Grid Grid.Row="1" Grid.ColumnSpan="2" ColumnDefinitions="*,16,*,16,*,16,*" Margin="0,0,0,16" Classes="appear">
+            <Border Classes="card">
+                <StackPanel Spacing="6">
+                    <TextBlock Classes="label" Text="Aktiv tid" />
+                    <TextBlock Classes="hero" Text="{Binding ActiveTime}" Foreground="{StaticResource AccentBrush}" />
+                </StackPanel>
+            </Border>
+            <Border Grid.Column="2" Classes="card">
+                <StackPanel Spacing="6">
+                    <TextBlock Classes="label" Text="Borta eller låst" />
+                    <TextBlock Classes="hero" Text="{Binding AwayTime}" />
+                </StackPanel>
+            </Border>
+            <Border Grid.Column="4" Classes="card">
+                <StackPanel Spacing="6">
+                    <TextBlock Classes="label" Text="Första aktivitet" />
+                    <TextBlock Classes="hero" Text="{Binding FirstActivity}" />
+                </StackPanel>
+            </Border>
+            <Border Grid.Column="6" Classes="card">
+                <StackPanel Spacing="6">
+                    <TextBlock Classes="label" Text="Fönsterbyten" />
+                    <TextBlock Classes="hero" Text="{Binding Switches}" />
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- Timeline -->
+        <Border Grid.Row="2" Grid.ColumnSpan="2" Classes="card appear" Margin="0,0,0,16" Padding="20,18">
+            <StackPanel Spacing="14">
+                <TextBlock Classes="h2" Text="Dagen" />
+                <c:TimelineBar Items="{Binding Timeline}"
+                               RangeStart="{Binding RangeStart}"
+                               RangeEnd="{Binding RangeEnd}"
+                               TrackBrush="{StaticResource SurfaceRaisedBrush}"
+                               LabelBrush="{StaticResource TextMutedBrush}" />
+                <ItemsControl ItemsSource="{Binding Legend}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:LegendItem">
+                            <StackPanel Orientation="Horizontal" Spacing="7" Margin="0,0,20,4">
+                                <Border Width="10" Height="10" CornerRadius="3" Background="{Binding Brush}" VerticalAlignment="Center" />
+                                <TextBlock Text="{Binding Label}" FontSize="12" />
+                                <TextBlock Text="{Binding Duration}" FontSize="12" Classes="muted" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </Border>
+
+        <!-- Segment list -->
+        <Border Grid.Row="3" Classes="card appear" Padding="8">
+            <Grid>
+                <ListBox Classes="rows" ItemsSource="{Binding Rows}" SelectedItem="{Binding SelectedRow}">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="vm:SegmentRowViewModel">
+                            <Grid ColumnDefinitions="96,150,*,Auto" Classes.dim="{Binding IsAway}">
+                                <TextBlock Text="{Binding TimeRange}" Classes="secondary" FontSize="13" VerticalAlignment="Center" />
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="9" VerticalAlignment="Center">
+                                    <Border Width="8" Height="8" CornerRadius="4" Background="{Binding Brush}" VerticalAlignment="Center" />
+                                    <TextBlock Text="{Binding Program}" FontWeight="Medium" TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="2" Spacing="2" VerticalAlignment="Center" Margin="0,0,16,0">
+                                    <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Text="{Binding Detail}" IsVisible="{Binding HasDetail}" Classes="muted"
+                                               FontSize="12" TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+                                <TextBlock Grid.Column="3" Text="{Binding Duration}" Classes="secondary" FontSize="13"
+                                           VerticalAlignment="Center" />
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+
+                <StackPanel IsVisible="{Binding IsEmpty}" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="8">
+                    <TextBlock Classes="icon muted" Text="&#xE81C;" FontSize="28" HorizontalAlignment="Center" />
+                    <TextBlock Text="Ingen aktivitet registrerad" HorizontalAlignment="Center" FontWeight="SemiBold" />
+                    <TextBlock Text="Allt du gör vid datorn visas här medan appen spårar." Classes="muted" HorizontalAlignment="Center" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Detail of the selected segment -->
+        <TransitioningContentControl Grid.Row="3" Grid.Column="1" Content="{Binding Detail}">
+            <TransitioningContentControl.PageTransition>
+                <CrossFade Duration="0:0:0.16" />
+            </TransitioningContentControl.PageTransition>
+            <TransitioningContentControl.ContentTemplate>
+                <DataTemplate x:DataType="vm:SegmentDetailViewModel">
+                    <Border Classes="card" Width="420" Margin="16,0,0,0" Padding="0">
+                        <Grid RowDefinitions="Auto,Auto,*">
+                            <Grid ColumnDefinitions="*,Auto" Margin="20,18,12,12">
+                                <StackPanel Spacing="4">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <Border Width="8" Height="8" CornerRadius="4" Background="{Binding Row.Brush}" VerticalAlignment="Center" />
+                                        <TextBlock Text="{Binding Row.Program}" FontWeight="SemiBold" />
+                                        <TextBlock Text="{Binding Row.TimeRange}" Classes="muted" />
+                                        <TextBlock Text="{Binding Row.Duration}" Classes="muted" />
+                                    </StackPanel>
+                                    <TextBlock Text="{Binding Row.Title}" TextWrapping="Wrap" Classes="secondary" MaxLines="3" />
+                                    <SelectableTextBlock Text="{Binding Row.Detail}" IsVisible="{Binding Row.HasDetail}"
+                                                         TextWrapping="Wrap" FontSize="12" Foreground="{StaticResource TextMutedBrush}" />
+                                </StackPanel>
+                                <Button Grid.Column="1" Classes="ghost icon" VerticalAlignment="Top"
+                                        Command="{Binding $parent[UserControl].((vm:ActivityPageViewModel)DataContext).CloseDetailCommand}"
+                                        ToolTip.Tip="Stäng">
+                                    <TextBlock Classes="icon" Text="&#xE711;" FontSize="11" />
+                                </Button>
+                            </Grid>
+
+                            <StackPanel Grid.Row="1" Margin="20,0,20,12" Spacing="10" IsVisible="{Binding HasScreenshots}">
+                                <Border CornerRadius="10" ClipToBounds="True" Background="{StaticResource SurfaceRaisedBrush}">
+                                    <Image Source="{Binding SelectedScreenshot.Image}" Stretch="Uniform" MaxHeight="240" />
+                                </Border>
+                                <ListBox Classes="chips" ItemsSource="{Binding Screenshots}" SelectedItem="{Binding SelectedScreenshot}">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:ScreenshotViewModel">
+                                            <TextBlock Text="{Binding Taken}" FontSize="12" />
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </StackPanel>
+
+                            <TextBlock Grid.Row="1" Margin="20,0,20,12" Classes="muted" FontSize="12" TextWrapping="Wrap"
+                                       IsVisible="{Binding !HasScreenshots}"
+                                       Text="Inga skärmdumpar för den här raden." />
+
+                            <Border Grid.Row="2" BorderBrush="{StaticResource StrokeBrush}" BorderThickness="0,1,0,0" IsVisible="{Binding HasScreenshots}">
+                                <DockPanel Margin="20,14,20,16">
+                                    <TextBlock DockPanel.Dock="Top" Classes="label" Text="Text på skärmen" Margin="0,0,0,8" />
+                                    <ScrollViewer>
+                                        <SelectableTextBlock Text="{Binding SelectedScreenshot.OcrText}" TextWrapping="Wrap"
+                                                             FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" />
+                                    </ScrollViewer>
+                                </DockPanel>
+                            </Border>
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </TransitioningContentControl.ContentTemplate>
+        </TransitioningContentControl>
+    </Grid>
+</UserControl>

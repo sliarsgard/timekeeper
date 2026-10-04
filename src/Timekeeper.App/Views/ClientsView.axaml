@@ -1,0 +1,87 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Timekeeper.App.ViewModels"
+             x:Class="Timekeeper.App.Views.ClientsView"
+             x:DataType="vm:ClientsPageViewModel">
+    <Grid Margin="32,4,32,28" RowDefinitions="Auto,Auto,Auto,*">
+        <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,22">
+            <StackPanel Spacing="2">
+                <TextBlock Classes="label" Text="KUNDER" />
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <TextBlock Classes="h1" Text="Kundregister" />
+                    <Border Classes="pill" Background="{StaticResource SurfaceRaisedBrush}" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding CountText}" FontSize="12" Classes="secondary" />
+                    </Border>
+                </StackPanel>
+            </StackPanel>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Bottom">
+                <Button Classes="ghost" Command="{Binding ToggleImportCommand}">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock Classes="icon" Text="&#xE77F;" FontSize="13" />
+                        <TextBlock Text="Klistra in lista" />
+                    </StackPanel>
+                </Button>
+                <Button Classes="primary" Command="{Binding AddClientCommand}">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock Classes="icon" Text="&#xE710;" FontSize="12" />
+                        <TextBlock Text="Lägg till kund" />
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+        </Grid>
+
+        <TextBlock Grid.Row="1" Classes="secondary" TextWrapping="Wrap" Margin="0,0,0,16" MaxWidth="760" HorizontalAlignment="Left"
+                   Text="Kunderna känns igen på namn och sökord i fönstertitlar, filsökvägar, webbadresser och skärmtext. Lägg till kortnamn, organisationsnummer eller namnet på kundmappen i SharePoint som sökord." />
+
+        <!-- Paste a list -->
+        <Border Grid.Row="2" Classes="card appear" Margin="0,0,0,16" IsVisible="{Binding IsImportOpen}">
+            <StackPanel Spacing="12">
+                <TextBlock Classes="h2" Text="Klistra in kunder" />
+                <TextBlock Classes="muted" FontSize="12" Text="En kund per rad, t.ex. kopierat från Blikk eller Excel. Kunder som redan finns hoppas över." />
+                <TextBox Text="{Binding ImportText}" AcceptsReturn="True" TextWrapping="NoWrap" Height="140"
+                         VerticalContentAlignment="Top" PlaceholderText="Bageriet i Lund AB&#10;Svensson Bygg AB" />
+                <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+                    <Button Classes="ghost" Content="Avbryt" Command="{Binding ToggleImportCommand}" />
+                    <Button Classes="primary" Content="Importera" Command="{Binding ImportCommand}" />
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <Border Grid.Row="3" Classes="card appear" Padding="0">
+            <Grid RowDefinitions="Auto,Auto,*">
+                <TextBox Margin="16,16,16,8" Text="{Binding Filter}" PlaceholderText="Sök kund eller sökord">
+                    <TextBox.InnerLeftContent>
+                        <TextBlock Classes="icon muted" Text="&#xE721;" FontSize="12" Margin="10,0,0,0" />
+                    </TextBox.InnerLeftContent>
+                </TextBox>
+                <Grid Grid.Row="1" ColumnDefinitions="2*,3*,48" Margin="26,6,26,6">
+                    <TextBlock Classes="label" Text="Namn" />
+                    <TextBlock Grid.Column="1" Classes="label" Text="Sökord (kommaseparerade)" Margin="10,0,0,0" />
+                </Grid>
+                <ScrollViewer Grid.Row="2">
+                    <ItemsControl ItemsSource="{Binding Visible}" Margin="16,0,16,12">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:ClientRowViewModel">
+                                <Grid ColumnDefinitions="2*,3*,48" Margin="0,3">
+                                    <TextBox Text="{Binding Name, UpdateSourceTrigger=LostFocus}" FontWeight="Medium" />
+                                    <TextBox Grid.Column="1" Margin="10,0,0,0" Text="{Binding Keywords, UpdateSourceTrigger=LostFocus}"
+                                             PlaceholderText="Kortnamn, org.nr, mappnamn" />
+                                    <Button Grid.Column="2" Classes="ghost icon" HorizontalAlignment="Right"
+                                            Command="{Binding $parent[ItemsControl].((vm:ClientsPageViewModel)DataContext).DeleteClientCommand}"
+                                            CommandParameter="{Binding}" ToolTip.Tip="Ta bort kunden">
+                                        <TextBlock Classes="icon" Text="&#xE74D;" FontSize="13" />
+                                    </Button>
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+                <StackPanel Grid.Row="2" IsVisible="{Binding IsEmpty}" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="8" Margin="0,40">
+                    <TextBlock Classes="icon muted" Text="&#xE716;" FontSize="28" HorizontalAlignment="Center" />
+                    <TextBlock Text="Inga kunder ännu" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                    <TextBlock Classes="muted" Text="Lägg till kunder en och en eller klistra in hela listan." HorizontalAlignment="Center" />
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

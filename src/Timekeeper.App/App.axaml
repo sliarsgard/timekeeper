@@ -1,0 +1,36 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Timekeeper.App.App"
+             RequestedThemeVariant="Dark">
+
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="avares://Timekeeper/Styles/Tokens.axaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Application.Resources>
+
+    <Application.Styles>
+        <FluentTheme>
+            <FluentTheme.Palettes>
+                <ColorPaletteResources x:Key="Dark"
+                                       Accent="#14B8A6"
+                                       RegionColor="#0B0D12"
+                                       AltHigh="#0B0D12"
+                                       BaseHigh="#E9ECF2"
+                                       BaseMediumHigh="#C5CBD8"
+                                       BaseMedium="#A0A8BA"
+                                       BaseMediumLow="#6C7488"
+                                       BaseLow="#2E3547"
+                                       ChromeLow="#141821"
+                                       ChromeMediumLow="#1A1F2A"
+                                       ChromeMedium="#1F2532"
+                                       ChromeHigh="#2E3547"
+                                       ListLow="#1F2532"
+                                       ListMedium="#2E3547" />
+            </FluentTheme.Palettes>
+        </FluentTheme>
+        <StyleInclude Source="avares://Timekeeper/Styles/Controls.axaml" />
+    </Application.Styles>
+</Application>

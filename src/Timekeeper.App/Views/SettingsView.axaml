@@ -1,0 +1,191 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Timekeeper.App.ViewModels"
+             xmlns:sys="using:System"
+             x:Class="Timekeeper.App.Views.SettingsView"
+             x:DataType="vm:SettingsPageViewModel">
+    <UserControl.Styles>
+        <!-- A setting: label and help text on the left, the control on the right -->
+        <Style Selector="Grid.setting">
+            <Setter Property="Margin" Value="0,10" />
+        </Style>
+        <Style Selector="Grid.setting > StackPanel:nth-child(1)">
+            <Setter Property="Spacing" Value="3" />
+            <Setter Property="Margin" Value="0,0,24,0" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Grid.setting > StackPanel:nth-child(1) > TextBlock:nth-child(2)">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+        <Style Selector="Border.card > StackPanel > TextBlock.h2">
+            <Setter Property="Margin" Value="0,0,0,6" />
+        </Style>
+    </UserControl.Styles>
+
+    <Grid RowDefinitions="Auto,*,Auto" Margin="32,4,32,28">
+        <StackPanel Spacing="2" Margin="0,0,0,22">
+            <TextBlock Classes="label" Text="INSTÄLLNINGAR" />
+            <TextBlock Classes="h1" Text="Inställningar" />
+        </StackPanel>
+
+        <ScrollViewer Grid.Row="1">
+            <StackPanel Spacing="16" MaxWidth="900" HorizontalAlignment="Left" Margin="0,0,16,0">
+                <!-- AI -->
+                <Border Classes="card appear">
+                    <StackPanel>
+                        <TextBlock Classes="h2" Text="AI" />
+                        <Grid Classes="setting" ColumnDefinitions="280,*">
+                            <StackPanel>
+                                <TextBlock Text="OpenAI API-nyckel" />
+                                <TextBlock Text="Luna läser skärmdumpar när det är oklart och skriver kommentarerna." />
+                            </StackPanel>
+                            <Grid Grid.Column="1" ColumnDefinitions="*,10,170">
+                                <TextBox Text="{Binding OpenAiApiKey}" PasswordChar="•" PlaceholderText="sk-…" />
+                                <TextBox Grid.Column="2" Text="{Binding LunaModel}" ToolTip.Tip="Modell" />
+                            </Grid>
+                        </Grid>
+                        <Grid Classes="setting" ColumnDefinitions="280,*">
+                            <StackPanel>
+                                <TextBlock Text="TypeSafe API-nyckel" />
+                                <TextBlock Text="Jev väljer kund och aktivitet snabbt och billigt utifrån text." />
+                            </StackPanel>
+                            <Grid Grid.Column="1" ColumnDefinitions="*,10,170">
+                                <TextBox Text="{Binding JevApiKey}" PasswordChar="•" PlaceholderText="Nyckel från console.typesafe.ai" />
+                                <TextBox Grid.Column="2" Text="{Binding JevModel}" ToolTip.Tip="Modell" />
+                            </Grid>
+                        </Grid>
+                        <Grid Classes="setting" ColumnDefinitions="280,*">
+                            <StackPanel>
+                                <TextBlock Text="Säkerhetströskel" />
+                                <TextBlock Text="Under denna nivå frågas Luna, och raden markeras för granskning." />
+                            </StackPanel>
+                            <Grid Grid.Column="1" ColumnDefinitions="*,56">
+                                <Slider Minimum="0.5" Maximum="0.95" TickFrequency="0.05" IsSnapToTickEnabled="True"
+                                        Value="{Binding ConfidenceThreshold}" />
+                                <TextBlock Grid.Column="1" Text="{Binding ConfidenceThresholdText}" VerticalAlignment="Center" HorizontalAlignment="Right" />
+                            </Grid>
+                        </Grid>
+                        <Grid Classes="setting" ColumnDefinitions="280,*">
+                            <StackPanel>
+                                <TextBlock Text="Skicka skärmdumpar" />
+                                <TextBlock Text="Låt Luna se skärmdumpen när texten inte räcker för att avgöra kunden." />
+                            </StackPanel>
+                            <ToggleSwitch Grid.Column="1" IsChecked="{Binding SendScreenshots}" OnContent="På" OffContent="Av" />
+                        </Grid>
+                        <Border Classes="pill warning" CornerRadius="10" Padding="12,10" Margin="0,8,0,0">
+                            <Grid ColumnDefinitions="Auto,*">
+                                <TextBlock Classes="icon" Text="&#xE7BA;" Margin="0,0,10,0" VerticalAlignment="Top" />
+                                <TextBlock Grid.Column="1" TextWrapping="Wrap" FontSize="12"
+                                           Text="När du skapar en tidslogg skickas fönstertitlar, skärmtext och ibland skärmdumpar till OpenAI och TypeSafe. Kontrollera att byrån godkänner det och att det finns personuppgiftsbiträdesavtal." />
+                            </Grid>
+                        </Border>
+                    </StackPanel>
+                </Border>
+
+                <!-- Timesheet -->
+                <Border Classes="card appear">
+                    <StackPanel>
+                        <TextBlock Classes="h2" Text="Tidslogg" />
+                        <Grid Classes="setting" ColumnDefinitions="280,*">
+                            <StackPanel>
+                                <TextBlock Text="Avrundning" />
+                                <TextBlock Text="Tid per kund avrundas till närmaste steg." />
+                            </StackPanel>
+                            <ComboBox Grid.Column="1" ItemsSource="{Binding RoundingOptions}" SelectedItem="{Binding RoundingMinutes}" Width="160"
+                                      HorizontalAlignment="Left">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate x:DataType="sys:Int32">
+                                        <TextBlock Text="{Binding StringFormat='{}{0} min'}" />
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                        </Grid>
+                        <Grid Classes="setting" ColumnDefinitions="280,*">
+                            <StackPanel>
+                                <TextBlock Text="Aktiviteter" />
+                                <TextBlock Text="Kommaseparerade, i samma form som i Blikk." />
+                            </StackPanel>
+                            <TextBox Grid.Column="1" Text="{Binding Activities}" />
+                        </Grid>
+                        <Grid Classes="setting" ColumnDefinitions="280,*">
+                            <StackPanel>
+                                <TextBlock Text="Standardaktivitet" />
+                                <TextBlock Text="Används när ingen modell kan avgöra." />
+                            </StackPanel>
+                            <ComboBox Grid.Column="1" ItemsSource="{Binding ActivityOptions}" SelectedItem="{Binding DefaultActivity}" Width="240"
+                                      HorizontalAlignment="Left" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- Tracking -->
+                <Border Classes="card appear">
+                    <StackPanel>
+                        <TextBlock Classes="h2" Text="Spårning" />
+                        <Grid Classes="setting" ColumnDefinitions="280,*">
+                            <StackPanel>
+                                <TextBlock Text="Inaktiv efter" />
+                                <TextBlock Text="Minuter utan mus eller tangentbord innan du räknas som borta." />
+                            </StackPanel>
+                            <NumericUpDown Grid.Column="1" Value="{Binding IdleMinutes}" Minimum="1" Maximum="60" Increment="1"
+                                           FormatString="0" Width="160" HorizontalAlignment="Left" />
+                        </Grid>
+                        <Grid Classes="setting" ColumnDefinitions="280,*">
+                            <StackPanel>
+                                <TextBlock Text="Skärmdump var" />
+                                <TextBlock Text="Minuter mellan skärmdumpar i samma fönster." />
+                            </StackPanel>
+                            <NumericUpDown Grid.Column="1" Value="{Binding ScreenshotIntervalMinutes}" Minimum="1" Maximum="30" Increment="1"
+                                           FormatString="0" Width="160" HorizontalAlignment="Left" />
+                        </Grid>
+                        <Grid Classes="setting" ColumnDefinitions="280,*">
+                            <StackPanel>
+                                <TextBlock Text="Spara skärmdumpar" />
+                                <TextBlock Text="Dagar innan skärmdumparna raderas från datorn." />
+                            </StackPanel>
+                            <NumericUpDown Grid.Column="1" Value="{Binding ScreenshotRetentionDays}" Minimum="1" Maximum="90" Increment="1"
+                                           FormatString="0" Width="160" HorizontalAlignment="Left" />
+                        </Grid>
+                        <Grid Classes="setting" ColumnDefinitions="280,*">
+                            <StackPanel>
+                                <TextBlock Text="Starta med Windows" />
+                                <TextBlock Text="Startar dolt i aktivitetsfältet när du loggar in." />
+                            </StackPanel>
+                            <ToggleSwitch Grid.Column="1" IsChecked="{Binding StartWithWindows}" OnContent="På" OffContent="Av" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- Updates -->
+                <Border Classes="card appear">
+                    <StackPanel>
+                        <TextBlock Classes="h2" Text="Uppdateringar" />
+                        <Grid Classes="setting" ColumnDefinitions="280,*">
+                            <StackPanel>
+                                <TextBlock Text="{Binding Shell.VersionText}" />
+                                <TextBlock Text="{Binding Shell.UpdateStatus}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                                <Button Content="Sök efter uppdateringar" Command="{Binding Shell.CheckForUpdatesCommand}" />
+                                <Button Classes="primary" Content="Starta om och uppdatera" IsVisible="{Binding Shell.IsUpdateReady}"
+                                        Command="{Binding Shell.RestartToUpdateCommand}" />
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+        <Border Grid.Row="2" BorderBrush="{StaticResource StrokeBrush}" BorderThickness="0,1,0,0" Padding="0,16,0,0" Margin="0,8,0,0">
+            <StackPanel Orientation="Horizontal" Spacing="12">
+                <Button Classes="primary" Content="Spara inställningar" Command="{Binding SaveCommand}" />
+                <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding JustSaved}" Classes="appear" VerticalAlignment="Center">
+                    <TextBlock Classes="icon" Text="&#xE73E;" Foreground="{StaticResource AccentBrush}" />
+                    <TextBlock Text="Sparat" Classes="secondary" />
+                </StackPanel>
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>
