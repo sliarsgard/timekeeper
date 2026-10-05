@@ -10,8 +10,8 @@
         Width="1340" Height="880"
         MinWidth="1040" MinHeight="660"
         WindowStartupLocation="CenterScreen"
-        Background="{StaticResource BackgroundBrush}"
-        Foreground="{StaticResource TextPrimaryBrush}"
+        Background="{DynamicResource BackgroundBrush}"
+        Foreground="{DynamicResource TextPrimaryBrush}"
         WindowDecorations="BorderOnly"
         ExtendClientAreaToDecorationsHint="True"
         ExtendClientAreaTitleBarHeightHint="44">
@@ -33,8 +33,8 @@
 
     <Grid ColumnDefinitions="236,*">
         <!-- Sidebar -->
-        <Border Background="{StaticResource SidebarBrush}"
-                BorderBrush="{StaticResource StrokeBrush}"
+        <Border Background="{DynamicResource SidebarBrush}"
+                BorderBrush="{DynamicResource StrokeBrush}"
                 BorderThickness="0,0,1,0">
             <DockPanel Margin="14,0,14,16">
                 <Border DockPanel.Dock="Top"
@@ -43,8 +43,8 @@
                         chrome:WindowDecorationProperties.ElementRole="TitleBar">
                     <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center" Margin="6,0,0,0">
                         <Grid Width="26" Height="26">
-                            <Ellipse Fill="{StaticResource AccentBrush}" />
-                            <Path Stroke="{StaticResource OnAccentBrush}"
+                            <Ellipse Fill="{DynamicResource AccentBrush}" />
+                            <Path Stroke="{DynamicResource OnAccentBrush}"
                                   StrokeThickness="2.4"
                                   StrokeLineCap="Round"
                                   Data="M13,13 L13,6.5 M13,13 L18.2,16.2" />
@@ -59,8 +59,8 @@
                         <StackPanel Spacing="3" VerticalAlignment="Center">
                             <StackPanel Orientation="Horizontal" Spacing="8">
                                 <Grid Width="8" Height="8" VerticalAlignment="Center">
-                                    <Ellipse Fill="{StaticResource AccentBrush}" Classes="pulse" IsVisible="{Binding IsTracking}" />
-                                    <Ellipse Fill="{StaticResource TextMutedBrush}" IsVisible="{Binding !IsTracking}" />
+                                    <Ellipse Fill="{DynamicResource AccentBrush}" Classes="pulse" IsVisible="{Binding IsTracking}" />
+                                    <Ellipse Fill="{DynamicResource TextMutedBrush}" IsVisible="{Binding !IsTracking}" />
                                 </Grid>
                                 <TextBlock Text="{Binding TrackingStatus}" FontWeight="SemiBold" />
                             </StackPanel>
@@ -78,17 +78,17 @@
                 <!-- Update + version -->
                 <StackPanel DockPanel.Dock="Bottom" Spacing="10">
                     <Border Classes="card appear" Padding="14" CornerRadius="12" IsVisible="{Binding IsUpdateReady}"
-                            BorderBrush="{StaticResource AccentPressedBrush}">
+                            BorderBrush="{DynamicResource AccentBrush}">
                         <StackPanel Spacing="10">
                             <StackPanel Spacing="2">
-                                <TextBlock Text="Ny version finns" FontWeight="SemiBold" />
-                                <TextBlock Classes="muted" FontSize="12" Text="{Binding UpdateVersion, StringFormat='Version {0} är nedladdad'}" />
+                                <TextBlock Text="{Binding UpdateVersion, StringFormat='Version {0} är klar'}" FontWeight="SemiBold" />
+                                <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" Text="Appen startar om på några sekunder." />
                             </StackPanel>
                             <Button Classes="primary" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
                                     Command="{Binding RestartToUpdateCommand}">
                                 <StackPanel Orientation="Horizontal" Spacing="8">
                                     <TextBlock Classes="icon" Text="&#xE72C;" FontSize="13" />
-                                    <TextBlock Text="Starta om och uppdatera" />
+                                    <TextBlock Text="Uppdatera nu" />
                                 </StackPanel>
                             </Button>
                         </StackPanel>

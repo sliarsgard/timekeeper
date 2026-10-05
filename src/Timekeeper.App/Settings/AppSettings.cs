@@ -5,8 +5,19 @@ using Timekeeper.Core.Timesheets;
 
 namespace Timekeeper.App.Settings;
 
+public enum AppTheme
+{
+    /// <summary>Follow the Windows light/dark setting.</summary>
+    System,
+    Light,
+    Dark,
+}
+
 public sealed record AppSettings
 {
+    [JsonConverter(typeof(JsonStringEnumConverter<AppTheme>))]
+    public AppTheme Theme { get; init; } = AppTheme.System;
+
     // Secrets are stored encrypted in a separate file, never in settings.json.
     [JsonIgnore]
     public string OpenAiApiKey { get; init; } = "";

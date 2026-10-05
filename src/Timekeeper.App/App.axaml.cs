@@ -4,6 +4,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Avalonia.Platform;
+using Avalonia.Styling;
 using Avalonia.Threading;
 using Timekeeper.App.Settings;
 using Timekeeper.App.Updates;
@@ -49,6 +50,7 @@ public partial class App : Application
             Directory.CreateDirectory(paths.DataDirectory);
             _settingsStore = new SettingsStore(paths);
             _settings = _settingsStore.Load();
+            ApplyTheme(_settings.Theme);
             var activityStore = new SqliteActivityStore(paths.DatabasePath);
             if (movedScreenshotsFrom is not null)
             {
@@ -68,6 +70,12 @@ public partial class App : Application
                 new TimesheetPageViewModel(timesheetStore, activityStore, timesheetStore, Http, () => _settings, day),
                 new ClientsPageViewModel(timesheetStore),
                 new SettingsPageViewModel(() => _settings, SaveSettings, _shell));
+
+            ActualThemeVariantChanged += (_, _) =>
+            {
+                ProgramPalette.UseTheme(ActualThemeVariant == ThemeVariant.Dark);
+                _shell.ActivityPage?.OnLabelsChanged();
+            };
 
             _live = new LiveClassifier(activityStore, timesheetStore, timesheetStore);
             _live.LabelsChanged += (_, _) => Dispatcher.UIThread.Post(() => _shell.ActivityPage?.OnLabelsChanged());
@@ -181,9 +189,21 @@ public partial class App : Application
         _live!.Answer(question.Signature, client);
     }
 
+    private void ApplyTheme(AppTheme theme)
+    {
+        RequestedThemeVariant = theme switch
+        {
+            AppTheme.Light => ThemeVariant.Light,
+            AppTheme.Dark => ThemeVariant.Dark,
+            _ => ThemeVariant.Default,
+        };
+        ProgramPalette.UseTheme(ActualThemeVariant == ThemeVariant.Dark);
+    }
+
     private void SaveSettings(AppSettings settings)
     {
         _settingsStore!.Save(settings);
+        ApplyTheme(settings.Theme);
         _settings = settings;
         _tracker!.Options = settings.ToTrackerOptions();
     }

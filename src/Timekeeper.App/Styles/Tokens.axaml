@@ -1,77 +1,151 @@
 <ResourceDictionary xmlns="https://github.com/avaloniaui"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <!-- Surfaces, darkest to lightest -->
-    <Color x:Key="BackgroundColor">#0B0D12</Color>
-    <Color x:Key="SidebarColor">#0E1117</Color>
-    <Color x:Key="SurfaceColor">#141821</Color>
-    <Color x:Key="SurfaceRaisedColor">#1A1F2A</Color>
-    <Color x:Key="SurfaceHoverColor">#1F2532</Color>
-    <Color x:Key="StrokeColor">#222836</Color>
-    <Color x:Key="StrokeStrongColor">#2E3547</Color>
+    <!-- Colours per theme. Reference them with DynamicResource so they follow theme switches. -->
+    <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Dark">
+            <!-- Surfaces, darkest to lightest in dark mode -->
+            <Color x:Key="BackgroundColor">#0B0D12</Color>
+            <SolidColorBrush x:Key="BackgroundBrush" Color="#0B0D12" />
+            <Color x:Key="SidebarColor">#0E1117</Color>
+            <SolidColorBrush x:Key="SidebarBrush" Color="#0E1117" />
+            <Color x:Key="SurfaceColor">#141821</Color>
+            <SolidColorBrush x:Key="SurfaceBrush" Color="#141821" />
+            <Color x:Key="SurfaceRaisedColor">#1A1F2A</Color>
+            <SolidColorBrush x:Key="SurfaceRaisedBrush" Color="#1A1F2A" />
+            <Color x:Key="SurfaceHoverColor">#1F2532</Color>
+            <SolidColorBrush x:Key="SurfaceHoverBrush" Color="#1F2532" />
+            <Color x:Key="StrokeColor">#222836</Color>
+            <SolidColorBrush x:Key="StrokeBrush" Color="#222836" />
+            <Color x:Key="StrokeStrongColor">#2E3547</Color>
+            <SolidColorBrush x:Key="StrokeStrongBrush" Color="#2E3547" />
+            <!-- Text -->
+            <Color x:Key="TextPrimaryColor">#E9ECF2</Color>
+            <SolidColorBrush x:Key="TextPrimaryBrush" Color="#E9ECF2" />
+            <Color x:Key="TextSecondaryColor">#A0A8BA</Color>
+            <SolidColorBrush x:Key="TextSecondaryBrush" Color="#A0A8BA" />
+            <Color x:Key="TextMutedColor">#6C7488</Color>
+            <SolidColorBrush x:Key="TextMutedBrush" Color="#6C7488" />
+            <!-- Accent follows the app icon -->
+            <Color x:Key="AccentColor">#2DD4BF</Color>
+            <SolidColorBrush x:Key="AccentBrush" Color="#2DD4BF" />
+            <Color x:Key="AccentHoverColor">#5EEAD4</Color>
+            <SolidColorBrush x:Key="AccentHoverBrush" Color="#5EEAD4" />
+            <Color x:Key="AccentPressedColor">#14B8A6</Color>
+            <SolidColorBrush x:Key="AccentPressedBrush" Color="#14B8A6" />
+            <Color x:Key="AccentSoftColor">#1F2DD4BF</Color>
+            <SolidColorBrush x:Key="AccentSoftBrush" Color="#1F2DD4BF" />
+            <Color x:Key="OnAccentColor">#042F2A</Color>
+            <SolidColorBrush x:Key="OnAccentBrush" Color="#042F2A" />
+            <!-- Status: reserved, always shown with an icon and a label -->
+            <Color x:Key="WarningColor">#F5B94C</Color>
+            <SolidColorBrush x:Key="WarningBrush" Color="#F5B94C" />
+            <Color x:Key="WarningSoftColor">#22F5B94C</Color>
+            <SolidColorBrush x:Key="WarningSoftBrush" Color="#22F5B94C" />
+            <Color x:Key="DangerColor">#F87171</Color>
+            <SolidColorBrush x:Key="DangerBrush" Color="#F87171" />
+            <Color x:Key="DangerSoftColor">#22F87171</Color>
+            <SolidColorBrush x:Key="DangerSoftBrush" Color="#22F87171" />
+            <!-- Input background while typing -->
+            <Color x:Key="InputFocusedColor">#10131A</Color>
+            <SolidColorBrush x:Key="InputFocusedBrush" Color="#10131A" />
 
-    <!-- Text -->
-    <Color x:Key="TextPrimaryColor">#E9ECF2</Color>
-    <Color x:Key="TextSecondaryColor">#A0A8BA</Color>
-    <Color x:Key="TextMutedColor">#6C7488</Color>
+            <!-- Fluent controls on the same surfaces as the rest of the UI -->
+            <SolidColorBrush x:Key="TextControlBackground" Color="#1A1F2A" />
+            <SolidColorBrush x:Key="TextControlBackgroundPointerOver" Color="#1F2532" />
+            <SolidColorBrush x:Key="TextControlBackgroundFocused" Color="#10131A" />
+            <SolidColorBrush x:Key="TextControlBorderBrush" Color="#222836" />
+            <SolidColorBrush x:Key="TextControlBorderBrushPointerOver" Color="#2E3547" />
+            <SolidColorBrush x:Key="TextControlBorderBrushFocused" Color="#2DD4BF" />
+            <SolidColorBrush x:Key="TextControlPlaceholderForeground" Color="#6C7488" />
+            <SolidColorBrush x:Key="TextControlPlaceholderForegroundPointerOver" Color="#6C7488" />
+            <SolidColorBrush x:Key="TextControlPlaceholderForegroundFocused" Color="#6C7488" />
+            <SolidColorBrush x:Key="ComboBoxBackground" Color="#1A1F2A" />
+            <SolidColorBrush x:Key="ComboBoxBackgroundPointerOver" Color="#1F2532" />
+            <SolidColorBrush x:Key="ComboBoxBackgroundPressed" Color="#1F2532" />
+            <SolidColorBrush x:Key="ComboBoxBorderBrush" Color="#222836" />
+            <SolidColorBrush x:Key="ComboBoxBorderBrushPointerOver" Color="#2E3547" />
+            <SolidColorBrush x:Key="ComboBoxDropDownBackground" Color="#141821" />
+            <SolidColorBrush x:Key="ComboBoxDropDownBorderBrush" Color="#2E3547" />
+            <SolidColorBrush x:Key="ToolTipBackground" Color="#141821" />
+            <SolidColorBrush x:Key="ToolTipBorderBrush" Color="#2E3547" />
+            <SolidColorBrush x:Key="ToolTipForeground" Color="#E9ECF2" />
+            <SolidColorBrush x:Key="FlyoutPresenterBackground" Color="#141821" />
+            <SolidColorBrush x:Key="MenuFlyoutPresenterBackground" Color="#141821" />
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="Light">
+            <!-- Surfaces, darkest to lightest in dark mode -->
+            <Color x:Key="BackgroundColor">#F6F7F9</Color>
+            <SolidColorBrush x:Key="BackgroundBrush" Color="#F6F7F9" />
+            <Color x:Key="SidebarColor">#EEF0F3</Color>
+            <SolidColorBrush x:Key="SidebarBrush" Color="#EEF0F3" />
+            <Color x:Key="SurfaceColor">#FFFFFF</Color>
+            <SolidColorBrush x:Key="SurfaceBrush" Color="#FFFFFF" />
+            <Color x:Key="SurfaceRaisedColor">#F3F4F6</Color>
+            <SolidColorBrush x:Key="SurfaceRaisedBrush" Color="#F3F4F6" />
+            <Color x:Key="SurfaceHoverColor">#E9ECF0</Color>
+            <SolidColorBrush x:Key="SurfaceHoverBrush" Color="#E9ECF0" />
+            <Color x:Key="StrokeColor">#E3E6EB</Color>
+            <SolidColorBrush x:Key="StrokeBrush" Color="#E3E6EB" />
+            <Color x:Key="StrokeStrongColor">#CDD2DA</Color>
+            <SolidColorBrush x:Key="StrokeStrongBrush" Color="#CDD2DA" />
+            <!-- Text -->
+            <Color x:Key="TextPrimaryColor">#111827</Color>
+            <SolidColorBrush x:Key="TextPrimaryBrush" Color="#111827" />
+            <Color x:Key="TextSecondaryColor">#4B5563</Color>
+            <SolidColorBrush x:Key="TextSecondaryBrush" Color="#4B5563" />
+            <Color x:Key="TextMutedColor">#6B7280</Color>
+            <SolidColorBrush x:Key="TextMutedBrush" Color="#6B7280" />
+            <!-- Accent follows the app icon -->
+            <Color x:Key="AccentColor">#0F766E</Color>
+            <SolidColorBrush x:Key="AccentBrush" Color="#0F766E" />
+            <Color x:Key="AccentHoverColor">#115E59</Color>
+            <SolidColorBrush x:Key="AccentHoverBrush" Color="#115E59" />
+            <Color x:Key="AccentPressedColor">#134E4A</Color>
+            <SolidColorBrush x:Key="AccentPressedBrush" Color="#134E4A" />
+            <Color x:Key="AccentSoftColor">#1A0F766E</Color>
+            <SolidColorBrush x:Key="AccentSoftBrush" Color="#1A0F766E" />
+            <Color x:Key="OnAccentColor">#FFFFFF</Color>
+            <SolidColorBrush x:Key="OnAccentBrush" Color="#FFFFFF" />
+            <!-- Status: reserved, always shown with an icon and a label -->
+            <Color x:Key="WarningColor">#B45309</Color>
+            <SolidColorBrush x:Key="WarningBrush" Color="#B45309" />
+            <Color x:Key="WarningSoftColor">#1FF59E0B</Color>
+            <SolidColorBrush x:Key="WarningSoftBrush" Color="#1FF59E0B" />
+            <Color x:Key="DangerColor">#DC2626</Color>
+            <SolidColorBrush x:Key="DangerBrush" Color="#DC2626" />
+            <Color x:Key="DangerSoftColor">#1AEF4444</Color>
+            <SolidColorBrush x:Key="DangerSoftBrush" Color="#1AEF4444" />
+            <!-- Input background while typing -->
+            <Color x:Key="InputFocusedColor">#FFFFFF</Color>
+            <SolidColorBrush x:Key="InputFocusedBrush" Color="#FFFFFF" />
 
-    <!-- Accent follows the app icon -->
-    <Color x:Key="AccentColor">#2DD4BF</Color>
-    <Color x:Key="AccentHoverColor">#5EEAD4</Color>
-    <Color x:Key="AccentPressedColor">#14B8A6</Color>
-    <Color x:Key="AccentSoftColor">#1F2DD4BF</Color>
-    <Color x:Key="OnAccentColor">#042F2A</Color>
-
-    <!-- Status: reserved, always shown with an icon and a label -->
-    <Color x:Key="WarningColor">#F5B94C</Color>
-    <Color x:Key="WarningSoftColor">#22F5B94C</Color>
-    <Color x:Key="DangerColor">#F87171</Color>
-    <Color x:Key="DangerSoftColor">#22F87171</Color>
-
-    <SolidColorBrush x:Key="BackgroundBrush" Color="{StaticResource BackgroundColor}" />
-    <SolidColorBrush x:Key="SidebarBrush" Color="{StaticResource SidebarColor}" />
-    <SolidColorBrush x:Key="SurfaceBrush" Color="{StaticResource SurfaceColor}" />
-    <SolidColorBrush x:Key="SurfaceRaisedBrush" Color="{StaticResource SurfaceRaisedColor}" />
-    <SolidColorBrush x:Key="SurfaceHoverBrush" Color="{StaticResource SurfaceHoverColor}" />
-    <SolidColorBrush x:Key="StrokeBrush" Color="{StaticResource StrokeColor}" />
-    <SolidColorBrush x:Key="StrokeStrongBrush" Color="{StaticResource StrokeStrongColor}" />
-    <SolidColorBrush x:Key="TextPrimaryBrush" Color="{StaticResource TextPrimaryColor}" />
-    <SolidColorBrush x:Key="TextSecondaryBrush" Color="{StaticResource TextSecondaryColor}" />
-    <SolidColorBrush x:Key="TextMutedBrush" Color="{StaticResource TextMutedColor}" />
-    <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource AccentColor}" />
-    <SolidColorBrush x:Key="AccentHoverBrush" Color="{StaticResource AccentHoverColor}" />
-    <SolidColorBrush x:Key="AccentPressedBrush" Color="{StaticResource AccentPressedColor}" />
-    <SolidColorBrush x:Key="AccentSoftBrush" Color="{StaticResource AccentSoftColor}" />
-    <SolidColorBrush x:Key="OnAccentBrush" Color="{StaticResource OnAccentColor}" />
-    <SolidColorBrush x:Key="WarningBrush" Color="{StaticResource WarningColor}" />
-    <SolidColorBrush x:Key="WarningSoftBrush" Color="{StaticResource WarningSoftColor}" />
-    <SolidColorBrush x:Key="DangerBrush" Color="{StaticResource DangerColor}" />
-    <SolidColorBrush x:Key="DangerSoftBrush" Color="{StaticResource DangerSoftColor}" />
+            <!-- Fluent controls on the same surfaces as the rest of the UI -->
+            <SolidColorBrush x:Key="TextControlBackground" Color="#F3F4F6" />
+            <SolidColorBrush x:Key="TextControlBackgroundPointerOver" Color="#E9ECF0" />
+            <SolidColorBrush x:Key="TextControlBackgroundFocused" Color="#FFFFFF" />
+            <SolidColorBrush x:Key="TextControlBorderBrush" Color="#E3E6EB" />
+            <SolidColorBrush x:Key="TextControlBorderBrushPointerOver" Color="#CDD2DA" />
+            <SolidColorBrush x:Key="TextControlBorderBrushFocused" Color="#0F766E" />
+            <SolidColorBrush x:Key="TextControlPlaceholderForeground" Color="#6B7280" />
+            <SolidColorBrush x:Key="TextControlPlaceholderForegroundPointerOver" Color="#6B7280" />
+            <SolidColorBrush x:Key="TextControlPlaceholderForegroundFocused" Color="#6B7280" />
+            <SolidColorBrush x:Key="ComboBoxBackground" Color="#F3F4F6" />
+            <SolidColorBrush x:Key="ComboBoxBackgroundPointerOver" Color="#E9ECF0" />
+            <SolidColorBrush x:Key="ComboBoxBackgroundPressed" Color="#E9ECF0" />
+            <SolidColorBrush x:Key="ComboBoxBorderBrush" Color="#E3E6EB" />
+            <SolidColorBrush x:Key="ComboBoxBorderBrushPointerOver" Color="#CDD2DA" />
+            <SolidColorBrush x:Key="ComboBoxDropDownBackground" Color="#FFFFFF" />
+            <SolidColorBrush x:Key="ComboBoxDropDownBorderBrush" Color="#CDD2DA" />
+            <SolidColorBrush x:Key="ToolTipBackground" Color="#FFFFFF" />
+            <SolidColorBrush x:Key="ToolTipBorderBrush" Color="#CDD2DA" />
+            <SolidColorBrush x:Key="ToolTipForeground" Color="#111827" />
+            <SolidColorBrush x:Key="FlyoutPresenterBackground" Color="#FFFFFF" />
+            <SolidColorBrush x:Key="MenuFlyoutPresenterBackground" Color="#FFFFFF" />
+        </ResourceDictionary>
+    </ResourceDictionary.ThemeDictionaries>
 
     <!-- Segoe MDL2 Assets ships with Windows 10 and 11 -->
     <FontFamily x:Key="IconFont">Segoe MDL2 Assets</FontFamily>
-
-    <!-- Fluent control overrides so inputs sit on the same surfaces as the rest of the UI -->
-    <StaticResource x:Key="TextControlBackground" ResourceKey="SurfaceRaisedBrush" />
-    <StaticResource x:Key="TextControlBackgroundPointerOver" ResourceKey="SurfaceHoverBrush" />
-    <SolidColorBrush x:Key="TextControlBackgroundFocused" Color="#10131A" />
-    <StaticResource x:Key="TextControlBorderBrush" ResourceKey="StrokeBrush" />
-    <StaticResource x:Key="TextControlBorderBrushPointerOver" ResourceKey="StrokeStrongBrush" />
-    <StaticResource x:Key="TextControlBorderBrushFocused" ResourceKey="AccentBrush" />
-    <StaticResource x:Key="TextControlPlaceholderForeground" ResourceKey="TextMutedBrush" />
-    <StaticResource x:Key="TextControlPlaceholderForegroundPointerOver" ResourceKey="TextMutedBrush" />
-    <StaticResource x:Key="TextControlPlaceholderForegroundFocused" ResourceKey="TextMutedBrush" />
-    <StaticResource x:Key="ComboBoxBackground" ResourceKey="SurfaceRaisedBrush" />
-    <StaticResource x:Key="ComboBoxBackgroundPointerOver" ResourceKey="SurfaceHoverBrush" />
-    <StaticResource x:Key="ComboBoxBackgroundPressed" ResourceKey="SurfaceHoverBrush" />
-    <StaticResource x:Key="ComboBoxBorderBrush" ResourceKey="StrokeBrush" />
-    <StaticResource x:Key="ComboBoxBorderBrushPointerOver" ResourceKey="StrokeStrongBrush" />
-    <StaticResource x:Key="ComboBoxDropDownBackground" ResourceKey="SurfaceRaisedBrush" />
-    <StaticResource x:Key="ComboBoxDropDownBorderBrush" ResourceKey="StrokeStrongBrush" />
-    <StaticResource x:Key="ToolTipBackground" ResourceKey="SurfaceRaisedBrush" />
-    <StaticResource x:Key="ToolTipBorderBrush" ResourceKey="StrokeStrongBrush" />
-    <StaticResource x:Key="ToolTipForeground" ResourceKey="TextPrimaryBrush" />
-    <StaticResource x:Key="FlyoutPresenterBackground" ResourceKey="SurfaceRaisedBrush" />
-    <StaticResource x:Key="MenuFlyoutPresenterBackground" ResourceKey="SurfaceRaisedBrush" />
     <CornerRadius x:Key="ControlCornerRadius">8</CornerRadius>
     <CornerRadius x:Key="OverlayCornerRadius">10</CornerRadius>
 </ResourceDictionary>

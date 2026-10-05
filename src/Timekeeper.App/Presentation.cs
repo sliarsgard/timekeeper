@@ -1,6 +1,5 @@
 using System.Globalization;
 using Avalonia.Media;
-using Avalonia.Media.Immutable;
 
 namespace Timekeeper.App;
 
@@ -54,19 +53,38 @@ internal static class ProgramNames
 /// Gives each program a colour in order of first appearance that day, so colours never shift as
 /// the day goes on. Programs beyond the palette share a neutral "Övrigt" colour.
 /// </summary>
+/// <remarks>
+/// The brushes are shared and recoloured by <see cref="UseTheme"/>, so everything drawn with them
+/// follows a switch between light and dark mode.
+/// </remarks>
 internal sealed class ProgramPalette
 {
     public const string OtherLabel = "Övrigt";
 
-    // Categorical slots validated for colour-vision deficiency on the dark surface, in fixed order.
-    private static readonly IBrush[] Slots =
-        new[] { "#3987E5", "#D95926", "#199E70", "#C98500", "#D55181", "#008300", "#9085E9" }
-            .Select(hex => (IBrush)new ImmutableSolidColorBrush(Color.Parse(hex)))
-            .ToArray();
+    // Categorical slots in fixed order, each mode's steps validated for colour-vision deficiency
+    // against that mode's surface. Light steps below 3:1 contrast always appear next to a label.
+    private static readonly string[] DarkSlots = ["#3987E5", "#D95926", "#199E70", "#C98500", "#D55181", "#008300", "#9085E9"];
+    private static readonly string[] LightSlots = ["#2A78D6", "#EB6834", "#1BAF7A", "#EDA100", "#E87BA4", "#008300", "#4A3AA7"];
 
-    private static readonly IBrush Other = new ImmutableSolidColorBrush(Color.Parse("#5B6275"));
+    private static readonly SolidColorBrush[] Slots = DarkSlots.Select(hex => new SolidColorBrush(Color.Parse(hex))).ToArray();
+    private static readonly SolidColorBrush Other = new(Color.Parse("#5B6275"));
 
     private readonly Dictionary<string, IBrush> _assigned = [];
+
+    /// <summary>For time away from the computer.</summary>
+    public static SolidColorBrush Away { get; } = new(Color.Parse("#3A4152"));
+
+    public static void UseTheme(bool dark)
+    {
+        var slots = dark ? DarkSlots : LightSlots;
+        for (var i = 0; i < Slots.Length; i++)
+        {
+            Slots[i].Color = Color.Parse(slots[i]);
+        }
+
+        Other.Color = Color.Parse(dark ? "#5B6275" : "#9CA3AF");
+        Away.Color = Color.Parse(dark ? "#3A4152" : "#C9CED6");
+    }
 
     public IBrush BrushFor(string program)
     {

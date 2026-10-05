@@ -4,10 +4,15 @@ using Timekeeper.App.Settings;
 
 namespace Timekeeper.App.ViewModels;
 
+public sealed record ThemeOption(AppTheme Theme, string Label);
+
 public sealed partial class SettingsPageViewModel : PageViewModel
 {
     private readonly Func<AppSettings> _current;
     private readonly Action<AppSettings> _save;
+
+    [ObservableProperty]
+    private ThemeOption? _theme;
 
     [ObservableProperty]
     private string _openAiApiKey = "";
@@ -68,6 +73,13 @@ public sealed partial class SettingsPageViewModel : PageViewModel
 
     public IReadOnlyList<int> RoundingOptions { get; } = [1, 5, 6, 10, 15, 30];
 
+    public IReadOnlyList<ThemeOption> ThemeOptions { get; } =
+    [
+        new(AppTheme.System, "Följ Windows"),
+        new(AppTheme.Light, "Ljust"),
+        new(AppTheme.Dark, "Mörkt"),
+    ];
+
     public IReadOnlyList<string> ActivityOptions =>
         Activities.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
@@ -81,6 +93,7 @@ public sealed partial class SettingsPageViewModel : PageViewModel
         var activities = ActivityOptions;
         _save(_current() with
         {
+            Theme = Theme?.Theme ?? AppTheme.System,
             OpenAiApiKey = OpenAiApiKey.Trim(),
             LunaModel = string.IsNullOrWhiteSpace(LunaModel) ? new AppSettings().LunaModel : LunaModel.Trim(),
             JevApiKey = JevApiKey.Trim(),
@@ -108,6 +121,7 @@ public sealed partial class SettingsPageViewModel : PageViewModel
     private void Reset()
     {
         var settings = _current();
+        Theme = ThemeOptions.First(o => o.Theme == settings.Theme);
         OpenAiApiKey = settings.OpenAiApiKey;
         LunaModel = settings.LunaModel;
         JevApiKey = settings.JevApiKey;

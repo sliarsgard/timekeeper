@@ -1,5 +1,4 @@
 using Avalonia.Media;
-using Avalonia.Media.Immutable;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Timekeeper.Core;
 
@@ -12,7 +11,6 @@ public sealed partial class SegmentRowViewModel(ActivitySegment segment, IBrush 
     [NotifyPropertyChangedFor(nameof(HasClient))]
     private string? _client;
 
-    private static readonly IBrush AwayBrush = new ImmutableSolidColorBrush(Color.Parse("#3A4152"));
 
     public ActivitySegment Segment { get; private set; } = segment;
 
@@ -20,7 +18,7 @@ public sealed partial class SegmentRowViewModel(ActivitySegment segment, IBrush 
 
     public bool IsAway => Segment.State != ActivityState.Active;
 
-    public IBrush Brush => IsAway ? AwayBrush : brush;
+    public IBrush Brush => IsAway ? ProgramPalette.Away : brush;
 
     public string Program => Segment.State switch
     {

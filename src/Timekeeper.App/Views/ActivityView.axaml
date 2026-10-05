@@ -13,7 +13,7 @@
             <Border Classes="card">
                 <StackPanel Spacing="6">
                     <TextBlock Classes="label" Text="Aktiv tid" />
-                    <TextBlock Classes="hero" Text="{Binding ActiveTime}" Foreground="{StaticResource AccentBrush}" />
+                    <TextBlock Classes="hero" Text="{Binding ActiveTime}" Foreground="{DynamicResource AccentBrush}" />
                 </StackPanel>
             </Border>
             <Border Grid.Column="2" Classes="card">
@@ -43,8 +43,9 @@
                 <c:TimelineBar Items="{Binding Timeline}"
                                RangeStart="{Binding RangeStart}"
                                RangeEnd="{Binding RangeEnd}"
-                               TrackBrush="{StaticResource SurfaceRaisedBrush}"
-                               LabelBrush="{StaticResource TextMutedBrush}" />
+                               TrackBrush="{DynamicResource SurfaceRaisedBrush}"
+                               LabelBrush="{DynamicResource TextMutedBrush}"
+                               HoverBrush="{DynamicResource TextPrimaryBrush}" />
                 <Grid ColumnDefinitions="Auto,*" IsVisible="{Binding HasClientsToday}">
                     <TextBlock Classes="label" Text="Kunder" Margin="0,1,14,0" />
                     <ItemsControl Grid.Column="1" ItemsSource="{Binding ClientsToday}">
@@ -96,7 +97,7 @@
                                         <TextBlock Text="{Binding Program}" FontWeight="Medium" TextTrimming="CharacterEllipsis" />
                                     </StackPanel>
                                     <TextBlock Text="{Binding Client}" IsVisible="{Binding HasClient}" FontSize="12"
-                                               Foreground="{StaticResource AccentBrush}" TextTrimming="CharacterEllipsis" Margin="17,0,0,0" />
+                                               Foreground="{DynamicResource AccentBrush}" TextTrimming="CharacterEllipsis" Margin="17,0,0,0" />
                                 </StackPanel>
                                 <StackPanel Grid.Column="2" Spacing="2" VerticalAlignment="Center" Margin="0,0,16,0">
                                     <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
@@ -137,7 +138,7 @@
                                     </StackPanel>
                                     <TextBlock Text="{Binding Row.Title}" TextWrapping="Wrap" Classes="secondary" MaxLines="3" />
                                     <SelectableTextBlock Text="{Binding Row.Detail}" IsVisible="{Binding Row.HasDetail}"
-                                                         TextWrapping="Wrap" FontSize="12" Foreground="{StaticResource TextMutedBrush}" />
+                                                         TextWrapping="Wrap" FontSize="12" Foreground="{DynamicResource TextMutedBrush}" />
                                 </StackPanel>
                                 <Button Grid.Column="1" Classes="ghost icon" VerticalAlignment="Top"
                                         Command="{Binding $parent[UserControl].((vm:ActivityPageViewModel)DataContext).CloseDetailCommand}"
@@ -147,7 +148,7 @@
                             </Grid>
 
                             <StackPanel Grid.Row="1" Margin="20,0,20,12" Spacing="10" IsVisible="{Binding HasScreenshots}">
-                                <Border CornerRadius="10" ClipToBounds="True" Background="{StaticResource SurfaceRaisedBrush}">
+                                <Border CornerRadius="10" ClipToBounds="True" Background="{DynamicResource SurfaceRaisedBrush}">
                                     <Image Source="{Binding SelectedScreenshot.Image}" Stretch="Uniform" MaxHeight="240" />
                                 </Border>
                                 <ListBox Classes="chips" ItemsSource="{Binding Screenshots}" SelectedItem="{Binding SelectedScreenshot}">
@@ -163,12 +164,12 @@
                                        IsVisible="{Binding !HasScreenshots}"
                                        Text="Inga skärmdumpar för den här raden." />
 
-                            <Border Grid.Row="2" BorderBrush="{StaticResource StrokeBrush}" BorderThickness="0,1,0,0" IsVisible="{Binding HasScreenshots}">
+                            <Border Grid.Row="2" BorderBrush="{DynamicResource StrokeBrush}" BorderThickness="0,1,0,0" IsVisible="{Binding HasScreenshots}">
                                 <DockPanel Margin="20,14,20,16">
                                     <TextBlock DockPanel.Dock="Top" Classes="label" Text="Text på skärmen" Margin="0,0,0,8" />
                                     <ScrollViewer>
                                         <SelectableTextBlock Text="{Binding SelectedScreenshot.OcrText}" TextWrapping="Wrap"
-                                                             FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" />
+                                                             FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" />
                                     </ScrollViewer>
                                 </DockPanel>
                             </Border>

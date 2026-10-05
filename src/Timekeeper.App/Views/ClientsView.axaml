@@ -9,7 +9,7 @@
                 <TextBlock Classes="label" Text="KUNDER" />
                 <StackPanel Orientation="Horizontal" Spacing="10">
                     <TextBlock Classes="h1" Text="Kundregister" />
-                    <Border Classes="pill" Background="{StaticResource SurfaceRaisedBrush}" VerticalAlignment="Center">
+                    <Border Classes="pill" Background="{DynamicResource SurfaceRaisedBrush}" VerticalAlignment="Center">
                         <TextBlock Text="{Binding CountText}" FontSize="12" Classes="secondary" />
                     </Border>
                 </StackPanel>

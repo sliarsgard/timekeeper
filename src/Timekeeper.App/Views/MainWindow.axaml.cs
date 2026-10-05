@@ -1,4 +1,5 @@
 using Avalonia.Controls;
+using Avalonia.Media;
 using Avalonia.Data.Converters;
 using Avalonia.Interactivity;
 
@@ -13,6 +14,9 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+
+        // Subpixel (ClearType) rendering gives thin icon glyphs coloured fringes, most visible in light mode.
+        TextOptions.SetTextRenderingMode(this, TextRenderingMode.Antialias);
     }
 
     private void OnMinimizeClick(object? sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;

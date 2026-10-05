@@ -13,15 +13,15 @@
         Topmost="True"
         TransparencyLevelHint="Transparent"
         Background="Transparent"
-        Foreground="{StaticResource TextPrimaryBrush}">
+        Foreground="{DynamicResource TextPrimaryBrush}">
     <!-- The margin leaves room for the shadow inside the transparent window. -->
     <Border Classes="card appear" Margin="16" Padding="18,16"
-            BorderBrush="{StaticResource StrokeStrongBrush}"
+            BorderBrush="{DynamicResource StrokeStrongBrush}"
             BoxShadow="0 10 30 0 #99000000">
         <StackPanel Spacing="12">
             <Grid ColumnDefinitions="Auto,*,Auto">
-                <Border Width="28" Height="28" CornerRadius="14" Background="{StaticResource AccentSoftBrush}" VerticalAlignment="Top">
-                    <TextBlock Classes="icon" Text="&#xE945;" FontSize="12" Foreground="{StaticResource AccentBrush}"
+                <Border Width="28" Height="28" CornerRadius="14" Background="{DynamicResource AccentSoftBrush}" VerticalAlignment="Top">
+                    <TextBlock Classes="icon" Text="&#xE945;" FontSize="12" Foreground="{DynamicResource AccentBrush}"
                                HorizontalAlignment="Center" />
                 </Border>
                 <StackPanel Grid.Column="1" Spacing="3" Margin="12,0,8,0">

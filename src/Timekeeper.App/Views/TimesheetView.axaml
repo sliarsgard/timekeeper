@@ -40,8 +40,8 @@
         <!-- Empty state -->
         <Border Grid.Row="3" Classes="card appear" IsVisible="{Binding ShowEmptyState}">
             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="14" MaxWidth="420">
-                <Border Width="56" Height="56" CornerRadius="28" Background="{StaticResource AccentSoftBrush}" HorizontalAlignment="Center">
-                    <TextBlock Classes="icon" Text="&#xE945;" FontSize="22" Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Center" />
+                <Border Width="56" Height="56" CornerRadius="28" Background="{DynamicResource AccentSoftBrush}" HorizontalAlignment="Center">
+                    <TextBlock Classes="icon" Text="&#xE945;" FontSize="22" Foreground="{DynamicResource AccentBrush}" HorizontalAlignment="Center" />
                 </Border>
                 <TextBlock Classes="h2" Text="Ingen tidslogg för dagen ännu" HorizontalAlignment="Center" />
                 <TextBlock Classes="secondary" TextWrapping="Wrap" TextAlignment="Center"
@@ -62,7 +62,7 @@
         <!-- Entries -->
         <Border Grid.Row="3" Classes="card appear" Padding="0" IsVisible="{Binding HasEntries}">
             <Grid RowDefinitions="Auto,*">
-                <Grid ColumnDefinitions="2*,1.3*,96,3*,76" Margin="20,14,20,8">
+                <Grid ColumnDefinitions="2*,1.7*,96,2.6*,76" Margin="20,14,20,8">
                     <TextBlock Classes="label" Text="Kund" />
                     <TextBlock Grid.Column="1" Classes="label" Text="Aktivitet" Margin="10,0,0,0" />
                     <TextBlock Grid.Column="2" Classes="label" Text="Timmar" Margin="10,0,0,0" />
@@ -73,7 +73,7 @@
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="vm:TimesheetEntryViewModel">
                                 <Border CornerRadius="10" Padding="8,6" Margin="0,2" Classes="appear">
-                                    <Grid ColumnDefinitions="2*,1.3*,96,3*,76">
+                                    <Grid ColumnDefinitions="2*,1.7*,96,2.6*,76">
                                         <AutoCompleteBox Text="{Binding Client}"
                                                          ItemsSource="{Binding $parent[ItemsControl].((vm:TimesheetPageViewModel)DataContext).ClientNames}"
                                                          FilterMode="ContainsOrdinal"

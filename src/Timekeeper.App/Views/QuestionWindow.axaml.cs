@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Media;
 
 namespace Timekeeper.App.Views;
 
@@ -9,6 +10,9 @@ public partial class QuestionWindow : Window
     public QuestionWindow()
     {
         InitializeComponent();
+
+        // Subpixel (ClearType) rendering gives thin icon glyphs coloured fringes, most visible in light mode.
+        TextOptions.SetTextRenderingMode(this, TextRenderingMode.Antialias);
     }
 
     protected override void OnOpened(EventArgs e)

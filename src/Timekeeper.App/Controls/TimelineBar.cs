@@ -3,7 +3,6 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
-using Avalonia.Media.Immutable;
 
 namespace Timekeeper.App.Controls;
 
@@ -29,18 +28,19 @@ public sealed class TimelineBar : Control
     public static readonly StyledProperty<IBrush?> LabelBrushProperty =
         AvaloniaProperty.Register<TimelineBar, IBrush?>(nameof(LabelBrush));
 
+    public static readonly StyledProperty<IBrush?> HoverBrushProperty =
+        AvaloniaProperty.Register<TimelineBar, IBrush?>(nameof(HoverBrush));
+
     private const double BarHeight = 34;
     private const double LabelGap = 8;
     private const double LabelFontSize = 11;
     private const double MinLabelSpacing = 40;
 
-    private static readonly IPen HoverPen = new ImmutablePen(Brushes.White, 1.5);
-
     private TimelineItem? _hovered;
 
     static TimelineBar()
     {
-        AffectsRender<TimelineBar>(ItemsProperty, RangeStartProperty, RangeEndProperty, TrackBrushProperty, LabelBrushProperty);
+        AffectsRender<TimelineBar>(ItemsProperty, RangeStartProperty, RangeEndProperty, TrackBrushProperty, LabelBrushProperty, HoverBrushProperty);
     }
 
     public IReadOnlyList<TimelineItem> Items
@@ -73,6 +73,13 @@ public sealed class TimelineBar : Control
         set => SetValue(LabelBrushProperty, value);
     }
 
+    /// <summary>Outlines the block under the pointer.</summary>
+    public IBrush? HoverBrush
+    {
+        get => GetValue(HoverBrushProperty);
+        set => SetValue(HoverBrushProperty, value);
+    }
+
     protected override Size MeasureOverride(Size availableSize) =>
         new(double.IsInfinity(availableSize.Width) ? 400 : availableSize.Width, BarHeight + LabelGap + LabelFontSize + 4);
 
@@ -86,13 +93,14 @@ public sealed class TimelineBar : Control
             return;
         }
 
+        var hoverPen = new Pen(HoverBrush, 1.5);
         foreach (var item in Items)
         {
             var rect = BlockRect(item, width);
             context.DrawRectangle(item.Brush, null, rect, 3, 3);
             if (item == _hovered)
             {
-                context.DrawRectangle(null, HoverPen, rect, 3, 3);
+                context.DrawRectangle(null, hoverPen, rect, 3, 3);
             }
         }
 
