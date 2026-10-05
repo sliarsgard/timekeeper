@@ -144,7 +144,7 @@ public sealed class LiveClassifier(IActivityStore activityStore, ITimesheetStore
                 window.Signature,
                 segment.ProcessName,
                 segment.WindowTitle ?? "",
-                label.Client == WindowClassifier.InternalLabel ? null : label.Client,
+                label.Client is WindowClassifier.InternalLabel or WindowClassifier.NotWorkLabel ? null : label.Client,
                 clients.Select(c => c.Name).ToList());
         }
 

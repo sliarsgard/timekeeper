@@ -20,6 +20,26 @@ public sealed record ForegroundWindow(IntPtr Handle, string ProcessName, string 
         return new ForegroundWindow(handle, GetProcessName(processId), GetTitle(handle));
     }
 
+    /// <summary>The main window of a running program, or null if it has none.</summary>
+    public static ForegroundWindow? MainWindowOf(string processName)
+    {
+        var processes = Process.GetProcessesByName(processName);
+        try
+        {
+            var withWindow = processes.FirstOrDefault(p => p.MainWindowHandle != IntPtr.Zero);
+            return withWindow is null
+                ? null
+                : new ForegroundWindow(withWindow.MainWindowHandle, withWindow.ProcessName, GetTitle(withWindow.MainWindowHandle));
+        }
+        finally
+        {
+            foreach (var process in processes)
+            {
+                process.Dispose();
+            }
+        }
+    }
+
     /// <summary>Time since the last keyboard or mouse input in this session.</summary>
     public static TimeSpan GetIdleTime()
     {
@@ -45,7 +65,7 @@ public sealed record ForegroundWindow(IntPtr Handle, string ProcessName, string 
         return text.ToString();
     }
 
-    private static string GetProcessName(uint processId)
+    public static string GetProcessName(uint processId)
     {
         try
         {

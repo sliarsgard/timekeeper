@@ -234,6 +234,21 @@ public class TimesheetBuilderTests
         Assert.Equal(("Bageriet i Lund AB", 60), (Assert.Single(preview).Client, preview[0].Minutes));
     }
 
+    [Fact]
+    public async Task Time_that_is_not_work_stays_out_of_the_timesheet_and_is_not_folded_into_a_client()
+    {
+        var luna = new FakeLanguageModel(new Decision(TimesheetBuilder.NotWorkLabel, 0.95));
+        var builder = new TimesheetBuilder(Options, null, luna);
+
+        var entries = await builder.BuildAsync(
+            Day,
+            [Segment(0, 25, "Bageriet.xlsx"), Segment(25, 2, "Lunchmusik", process: "Spotify"), Segment(27, 35, "Bageriet.xlsx")],
+            Clients);
+
+        var entry = Assert.Single(entries);
+        Assert.Equal(("Bageriet i Lund AB", 60), (entry.Client, entry.Minutes));
+    }
+
     private sealed class FakeDecisionModel(Decision answer) : IDecisionModel
     {
         public Task<Decision> ChooseAsync(string question, string context, IReadOnlyList<string> options, CancellationToken cancellationToken) =>

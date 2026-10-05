@@ -87,4 +87,26 @@ public class WindowClassifierTests
         Assert.Equal(LabelSource.Guess, label.Source);
         Assert.Equal(0, label.Confidence);
     }
+
+    [Fact]
+    public async Task Music_and_video_are_not_work_unless_the_user_says_otherwise()
+    {
+        var window = Window("Genomgång av K2 - YouTube");
+        var youtube = window with { Segment = new ActivitySegment
+        {
+            StartUtc = window.Segment.StartUtc,
+            EndUtc = window.Segment.EndUtc,
+            State = ActivityState.Active,
+            ProcessName = "msedge",
+            WindowTitle = window.Segment.WindowTitle,
+            Url = "youtube.com/watch?v=abc",
+        } };
+        var classifier = new WindowClassifier(Options, null, null, Clients);
+
+        var guessed = await classifier.ClassifyAsync(youtube, null, CancellationToken.None);
+        var corrected = await classifier.ClassifyAsync(youtube, Label(youtube, WindowClassifier.InternalLabel, LabelSource.User), CancellationToken.None);
+
+        Assert.Equal((WindowClassifier.NotWorkLabel, LabelSource.Rule), (guessed.Client, guessed.Source));
+        Assert.Equal(WindowClassifier.InternalLabel, corrected.Client);
+    }
 }

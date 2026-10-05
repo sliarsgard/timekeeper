@@ -11,7 +11,8 @@ using Timekeeper.Core.Timesheets;
 namespace Timekeeper.App.ViewModels;
 
 /// <summary>A row of the preliminary timesheet, as shown.</summary>
-public sealed record PreviewRow(string Client, string Hours, string TimeSpent, string Summary, bool IsUncertain, bool IsUnclassified);
+/// <param name="IsDimmed">Not yet classified, or not work: shown, but not part of the timesheet as is.</param>
+public sealed record PreviewRow(string Client, string Hours, string TimeSpent, string Summary, bool IsUncertain, bool IsDimmed);
 
 /// <summary>
 /// The day's timesheet. Until a draft is created it shows a preliminary timesheet that follows the
@@ -271,15 +272,19 @@ public sealed partial class TimesheetPageViewModel : PageViewModel
                 $"{Format.Hours(p.Minutes / 60m)} h",
                 Format.Duration(p.TimeSpent),
                 p.Summary,
-                p.Client != TimesheetBuilder.UnclassifiedLabel && p.Confidence < options.ConfidenceThreshold,
-                p.Client == TimesheetBuilder.UnclassifiedLabel))
+                p.Client is not (TimesheetBuilder.UnclassifiedLabel or TimesheetBuilder.NotWorkLabel)
+                    && p.Confidence < options.ConfidenceThreshold,
+                p.Client is TimesheetBuilder.UnclassifiedLabel or TimesheetBuilder.NotWorkLabel))
             .ToList();
 
-        var clientMinutes = preview.Where(p => p.Client != TimesheetBuilder.InternalLabel).Sum(p => p.Minutes);
+        var clientMinutes = preview
+            .Where(p => p.Client is not (TimesheetBuilder.InternalLabel or TimesheetBuilder.NotWorkLabel))
+            .Sum(p => p.Minutes);
         PreviewTotal = $"{Format.Hours(clientMinutes / 60m)} h";
 
         // A draft made earlier in the day misses what has happened since.
-        var missing = TimeSpan.FromMinutes(preview.Sum(p => p.Minutes) - Entries.Sum(e => e.Entry.Minutes));
+        var missing = TimeSpan.FromMinutes(
+            preview.Where(p => p.Client != TimesheetBuilder.NotWorkLabel).Sum(p => p.Minutes) - Entries.Sum(e => e.Entry.Minutes));
         NewTime = HasEntries && Day.IsToday && missing.TotalMinutes >= options.RoundingMinutes
             ? Format.Duration(missing)
             : null;

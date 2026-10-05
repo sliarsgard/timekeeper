@@ -42,6 +42,7 @@
                 <Button Classes="primary" Margin="0,0,8,8" IsVisible="{Binding HasSuggestion}"
                         Content="{Binding Suggestion}" Command="{Binding ChooseSuggestionCommand}" />
                 <Button Margin="0,0,8,8" Content="Internt" Command="{Binding ChooseInternalCommand}" />
+                <Button Margin="0,0,8,8" Content="Ej arbete" Command="{Binding ChooseNotWorkCommand}" />
             </WrapPanel>
 
             <Grid ColumnDefinitions="*,Auto">

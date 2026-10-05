@@ -8,6 +8,7 @@ namespace Timekeeper.Windows;
 public sealed class ActivityTracker(IActivityStore store, TrackerOptions options, string screenshotDirectory)
 {
     private const int ScreenshotMaxWidth = 1600;
+    private static readonly string OwnProcessName = Process.GetCurrentProcess().ProcessName;
     private const long ScreenshotJpegQuality = 70;
     private static readonly TimeSpan CleanupInterval = TimeSpan.FromHours(6);
 
@@ -105,7 +106,7 @@ public sealed class ActivityTracker(IActivityStore store, TrackerOptions options
     {
         var now = DateTime.UtcNow;
         var window = ForegroundWindow.Read();
-        var sample = Sample(now, window, browser);
+        var sample = Sample(now, window, browser, out var source);
 
         var change = _segmenter.Add(sample);
         if (change.Closed is not null)
@@ -122,7 +123,9 @@ public sealed class ActivityTracker(IActivityStore store, TrackerOptions options
             store.UpdateSegmentEnd(change.Current);
         }
 
+        // A screenshot shows what is in front, so it only belongs to the sample when that is its window.
         if (window is not null
+            && source == window
             && sample.State == ActivityState.Active
             && (change.Started || now - _lastScreenshotUtc >= _options.ScreenshotInterval))
         {
@@ -137,23 +140,60 @@ public sealed class ActivityTracker(IActivityStore store, TrackerOptions options
         Sampled?.Invoke(this, EventArgs.Empty);
     }
 
-    private ActivitySample Sample(DateTime now, ForegroundWindow? window, BrowserUrlReader browser)
+    /// <param name="source">The window the sample was attributed to; not always the one in front.</param>
+    private ActivitySample Sample(DateTime now, ForegroundWindow? window, BrowserUrlReader browser, out ForegroundWindow? source)
     {
+        source = null;
         if (window is null || window.ProcessName.Equals("LockApp", StringComparison.OrdinalIgnoreCase))
         {
             return new ActivitySample(now, ActivityState.Locked);
         }
 
         var idleFor = ForegroundWindow.GetIdleTime();
-        // Sitting still in a call or meeting is work, not being away.
-        if (idleFor >= _options.IdleThreshold && !MediaDeviceUsage.IsMicrophoneOrCameraInUse())
+        source = idleFor >= _options.IdleThreshold ? FindMediaWindow(window, browser) : window;
+        if (source is null)
         {
             return new ActivitySample(now, ActivityState.Idle, idleFor);
         }
 
-        var url = BrowserUrlReader.IsBrowser(window.ProcessName) ? browser.TryRead(window.Handle) : null;
-        var document = OfficeDocumentReader.IsOfficeApp(window.ProcessName) ? ReadOfficeDocument(window) : null;
-        return new ActivitySample(now, ActivityState.Active, idleFor, window.ProcessName, window.Title, url, document);
+        var url = BrowserUrlReader.IsBrowser(source.ProcessName) ? browser.TryRead(source.Handle) : null;
+        var document = OfficeDocumentReader.IsOfficeApp(source.ProcessName) ? ReadOfficeDocument(source) : null;
+        return new ActivitySample(now, ActivityState.Active, idleFor, source.ProcessName, source.Title, url, document);
+    }
+
+    /// <summary>
+    /// Without keyboard or mouse input the user may still be in a call, or watching or listening to
+    /// something. Returns the window that time belongs to (the program using the microphone or
+    /// making sound, or a meeting window) or null when the user is simply away.
+    /// </summary>
+    /// <remarks>
+    /// The time goes to the program making sound rather than whatever is in front, so music playing
+    /// over a client's spreadsheet is not counted as work for that client.
+    /// </remarks>
+    private static ForegroundWindow? FindMediaWindow(ForegroundWindow foreground, BrowserUrlReader browser)
+    {
+        var callPrograms = MediaDeviceUsage.ProgramsInUse().ToList();
+        var soundPrograms = AudioSessions.ProcessesPlayingSound()
+            .Select(id => ForegroundWindow.GetProcessName((uint)id))
+            .Where(name => name.Length > 0 && !name.Equals(OwnProcessName, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (callPrograms.Count == 0 && soundPrograms.Count == 0)
+        {
+            // Everyone silent with the microphone off: a meeting window still counts.
+            var url = BrowserUrlReader.IsBrowser(foreground.ProcessName) ? browser.TryRead(foreground.Handle) : null;
+            return WindowKinds.IsMeeting(foreground.ProcessName, foreground.Title, url) ? foreground : null;
+        }
+
+        var programs = callPrograms.Concat(soundPrograms).ToList();
+        if (programs.Contains(foreground.ProcessName, StringComparer.OrdinalIgnoreCase))
+        {
+            return foreground;
+        }
+
+        // Store apps such as the new Teams report a package name instead of a process name; their
+        // window cannot be found, so the call is assumed to be in the window in front.
+        return programs.Select(ForegroundWindow.MainWindowOf).FirstOrDefault(w => w is not null) ?? foreground;
     }
 
     private string? ReadOfficeDocument(ForegroundWindow window)

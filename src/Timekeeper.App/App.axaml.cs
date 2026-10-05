@@ -184,7 +184,8 @@ public partial class App : Application
     private void AnswerQuestion(WindowQuestion question, string client)
     {
         // A name typed in the question that is not in the register becomes a new client.
-        if (client != WindowClassifier.InternalLabel && !question.Clients.Contains(client))
+        if (client is not WindowClassifier.InternalLabel and not WindowClassifier.NotWorkLabel
+            && !question.Clients.Contains(client))
         {
             _timesheetStore!.SaveClient(new Client(0, client, []));
         }

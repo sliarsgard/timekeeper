@@ -11,10 +11,14 @@ public sealed class WindowClassifier
 {
     public const string InternalLabel = "Internt";
 
+    /// <summary>Not work at all, e.g. music or videos. Left out of the timesheet.</summary>
+    public const string NotWorkLabel = "Ej arbete";
+
     // Jev is most accurate in English; option names stay as the user wrote them.
     private const string ClientQuestion =
         "Which client company of a Swedish accounting firm is the work in this window for? "
-        + $"Choose \"{InternalLabel}\" if it is not for any specific client.";
+        + $"Choose \"{InternalLabel}\" if it is work but not for any specific client, "
+        + $"and \"{NotWorkLabel}\" if it is not work at all, such as music, videos or private browsing.";
 
     private const int MaxOcrCharacters = 2000;
 
@@ -37,6 +41,7 @@ public sealed class WindowClassifier
         _clientOptions = clients
             .Select(c => c.Name)
             .Append(InternalLabel)
+            .Append(NotWorkLabel)
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
     }
@@ -94,6 +99,11 @@ public sealed class WindowClassifier
         if (stillValid && known!.Source == LabelSource.User)
         {
             return known;
+        }
+
+        if (WindowKinds.IsLeisure(segment.ProcessName, segment.Url))
+        {
+            return new WindowLabel(WindowSignature.Of(segment), NotWorkLabel, 0.9, LabelSource.Rule);
         }
 
         var strongMatches = _matcher.FindIn(string.Join('\n', segment.WindowTitle, segment.Url, segment.DocumentPath));

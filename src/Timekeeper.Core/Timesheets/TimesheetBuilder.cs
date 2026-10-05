@@ -26,6 +26,8 @@ public sealed class TimesheetBuilder(
 {
     public const string InternalLabel = WindowClassifier.InternalLabel;
 
+    public const string NotWorkLabel = WindowClassifier.NotWorkLabel;
+
     /// <summary>Windows not yet classified during the day, shown separately in the preview.</summary>
     public const string UnclassifiedLabel = "Ej klassat ännu";
 
@@ -60,7 +62,8 @@ public sealed class TimesheetBuilder(
             labels[windows[i].Key] = label.ToDecision();
         }
 
-        var groups = Group(active, labels);
+        // Time that is not work stays out of the timesheet.
+        var groups = Group(active, labels).Where(g => g.Client != NotWorkLabel).ToList();
 
         var entries = new List<TimesheetEntry>();
         for (var i = 0; i < groups.Count; i++)
@@ -184,7 +187,7 @@ public sealed class TimesheetBuilder(
         for (var i = 0; i < segments.Count; i++)
         {
             var label = segments[i].Label;
-            if (label.Choice is InternalLabel or UnclassifiedLabel)
+            if (label.Choice is InternalLabel or UnclassifiedLabel or NotWorkLabel)
             {
                 continue;
             }
@@ -199,9 +202,13 @@ public sealed class TimesheetBuilder(
                 && next > i + 1
                 && segments[next].Evidence.Segment.StartUtc - segments[i].Evidence.Segment.EndUtc <= options.InterruptionThreshold)
             {
+                // A video in the middle of client work is still not work for that client.
                 for (var k = i + 1; k < next; k++)
                 {
-                    segments[k].Label = label;
+                    if (segments[k].Label.Choice != NotWorkLabel)
+                    {
+                        segments[k].Label = label;
+                    }
                 }
             }
         }

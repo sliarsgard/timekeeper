@@ -28,6 +28,9 @@ public sealed partial class QuestionViewModel(WindowQuestion question, Action<st
     [RelayCommand]
     private void ChooseInternal() => answer(WindowClassifier.InternalLabel);
 
+    [RelayCommand]
+    private void ChooseNotWork() => answer(WindowClassifier.NotWorkLabel);
+
     /// <summary>Picks a client from the register, or a new one by typing its name.</summary>
     [RelayCommand(CanExecute = nameof(CanChooseOther))]
     private void ChooseOther()

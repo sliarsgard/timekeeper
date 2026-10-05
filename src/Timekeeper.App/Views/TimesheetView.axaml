@@ -93,7 +93,7 @@
                     <ItemsControl ItemsSource="{Binding Preview}" Margin="12,0,12,8">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="vm:PreviewRow">
-                                <Border CornerRadius="10" Padding="8,10" Margin="0,1" Classes.dim="{Binding IsUnclassified}">
+                                <Border CornerRadius="10" Padding="8,10" Margin="0,1" Classes.dim="{Binding IsDimmed}">
                                     <Grid ColumnDefinitions="2*,90,90,3*,32">
                                         <TextBlock Text="{Binding Client}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"
                                                    VerticalAlignment="Center" />
@@ -116,7 +116,7 @@
 
                 <Border Grid.Row="3" BorderBrush="{DynamicResource StrokeBrush}" BorderThickness="0,1,0,0" Padding="20,14">
                     <StackPanel Orientation="Horizontal" Spacing="10">
-                        <TextBlock Classes="label" Text="Totalt (utan intern tid)" VerticalAlignment="Center" />
+                        <TextBlock Classes="label" Text="Totalt kundtid" VerticalAlignment="Center" />
                         <TextBlock Text="{Binding PreviewTotal}" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center" />
                     </StackPanel>
                 </Border>
