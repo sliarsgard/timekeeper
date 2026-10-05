@@ -2,9 +2,6 @@ using System.Text;
 
 namespace Timekeeper.Core.Timesheets;
 
-/// <summary>A recorded segment together with what was read from its first screenshot.</summary>
-public sealed record SegmentEvidence(ActivitySegment Segment, string? OcrText, string? ScreenshotPath);
-
 public sealed record TimesheetProgress(int Done, int Total, string Message);
 
 /// <summary>
@@ -12,20 +9,18 @@ public sealed record TimesheetProgress(int Done, int Total, string Message);
 /// activity and a short comment.
 /// </summary>
 /// <remarks>
-/// Each distinct window is classified once, cheapest first: keyword rules, then the decision model,
-/// and only when that is unsure the language model with a screenshot. Either model may be missing.
+/// Each distinct window is classified once by <see cref="WindowClassifier"/>. With a label store,
+/// windows already classified during the day are not sent to a model again.
 /// </remarks>
-public sealed class TimesheetBuilder(TimesheetOptions options, IDecisionModel? decisionModel, ILanguageModel? languageModel)
+public sealed class TimesheetBuilder(
+    TimesheetOptions options,
+    IDecisionModel? decisionModel,
+    ILanguageModel? languageModel,
+    ILabelStore? labelStore = null)
 {
-    public const string InternalLabel = "Internt";
-
-    // Jev is most accurate in English; option names stay as the user wrote them.
-    private const string ClientQuestion =
-        "Which client company of a Swedish accounting firm is the work in this window for? "
-        + $"Choose \"{InternalLabel}\" if it is not for any specific client.";
+    public const string InternalLabel = WindowClassifier.InternalLabel;
 
     private const string ActivityQuestion = "Which kind of accounting work does this activity describe?";
-    private const int MaxOcrCharacters = 2000;
     private const int MaxSummaryLines = 12;
 
     public async Task<IReadOnlyList<TimesheetEntry>> BuildAsync(
@@ -40,20 +35,27 @@ public sealed class TimesheetBuilder(TimesheetOptions options, IDecisionModel? d
             .OrderBy(e => e.Segment.StartUtc)
             .ToList();
 
-        var matcher = new ClientMatcher(clients);
-        var clientOptions = clients.Select(c => c.Name).Append(InternalLabel).ToList();
+        var classifier = new WindowClassifier(options, decisionModel, languageModel, clients);
+        var known = labelStore?.GetLabels() ?? new Dictionary<string, WindowLabel>();
 
         // People switch back and forth between the same few windows; classify each window once.
-        var windows = active.GroupBy(e => Signature(e.Segment)).ToList();
+        var windows = active.GroupBy(e => WindowSignature.Of(e.Segment)).ToList();
         var labels = new Dictionary<string, Decision>();
         for (var i = 0; i < windows.Count; i++)
         {
             progress?.Report(new TimesheetProgress(i, windows.Count, "Klassificerar fönster"));
             var representative = windows[i].FirstOrDefault(e => e.OcrText is not null) ?? windows[i].First();
-            labels[windows[i].Key] = await ClassifyAsync(representative, matcher, clientOptions, cancellationToken);
+            known.TryGetValue(windows[i].Key, out var previous);
+            var label = await classifier.ClassifyAsync(representative, previous, cancellationToken);
+            if (label != previous)
+            {
+                labelStore?.SaveLabel(label);
+            }
+
+            labels[windows[i].Key] = label.ToDecision();
         }
 
-        var labelled = active.Select(e => new LabelledSegment(e, labels[Signature(e.Segment)])).ToList();
+        var labelled = active.Select(e => new LabelledSegment(e, labels[WindowSignature.Of(e.Segment)])).ToList();
         AbsorbInterruptions(labelled);
 
         var groups = labelled
@@ -86,51 +88,12 @@ public sealed class TimesheetBuilder(TimesheetOptions options, IDecisionModel? d
         return entries;
     }
 
-    private async Task<Decision> ClassifyAsync(
-        SegmentEvidence evidence,
-        ClientMatcher matcher,
-        IReadOnlyList<string> clientOptions,
-        CancellationToken cancellationToken)
-    {
-        var segment = evidence.Segment;
-        var strongMatches = matcher.FindIn(string.Join('\n', segment.WindowTitle, segment.Url, segment.DocumentPath));
-        if (strongMatches.Count == 1)
-        {
-            return new Decision(strongMatches[0].Name, 0.95);
-        }
-
-        var ocrMatches = matcher.FindIn(evidence.OcrText);
-        var context = Describe(evidence, ocrMatches);
-
-        Decision? decision = null;
-        if (decisionModel is not null)
-        {
-            decision = Normalize(await decisionModel.ChooseAsync(ClientQuestion, context, clientOptions, cancellationToken), clientOptions);
-            if (decision.Confidence >= options.ConfidenceThreshold)
-            {
-                return decision;
-            }
-        }
-
-        if (languageModel is not null)
-        {
-            var image = options.SendScreenshots ? evidence.ScreenshotPath : null;
-            return Normalize(
-                await languageModel.ChooseAsync(ClientQuestion, context, clientOptions, image, cancellationToken),
-                clientOptions);
-        }
-
-        // Without models, a client named on screen is a reasonable but unsure guess.
-        return decision
-            ?? (ocrMatches.Count == 1 ? new Decision(ocrMatches[0].Name, 0.5) : new Decision(InternalLabel, 0));
-    }
-
     private async Task<string> PickActivityAsync(string summary, CancellationToken cancellationToken)
     {
         Decision? decision = null;
         if (decisionModel is not null)
         {
-            decision = Normalize(await decisionModel.ChooseAsync(ActivityQuestion, summary, options.Activities, cancellationToken), options.Activities);
+            decision = WindowClassifier.Normalize(await decisionModel.ChooseAsync(ActivityQuestion, summary, options.Activities, cancellationToken), options.Activities);
             if (decision.Confidence >= options.ConfidenceThreshold)
             {
                 return decision.Choice;
@@ -139,7 +102,7 @@ public sealed class TimesheetBuilder(TimesheetOptions options, IDecisionModel? d
 
         if (languageModel is not null)
         {
-            decision = Normalize(
+            decision = WindowClassifier.Normalize(
                 await languageModel.ChooseAsync(ActivityQuestion, summary, options.Activities, imagePath: null, cancellationToken),
                 options.Activities);
         }
@@ -213,40 +176,6 @@ public sealed class TimesheetBuilder(TimesheetOptions options, IDecisionModel? d
             : segments.Sum(s => s.Label.Confidence * s.Evidence.Segment.Duration.TotalSeconds) / total;
     }
 
-    /// <summary>Maps a free-form answer onto the option list; anything unrecognised is not a decision.</summary>
-    private static Decision Normalize(Decision decision, IReadOnlyList<string> optionList)
-    {
-        var match = optionList.FirstOrDefault(o => string.Equals(o, decision.Choice.Trim(), StringComparison.OrdinalIgnoreCase));
-        return match is null
-            ? new Decision(optionList.Contains(InternalLabel) ? InternalLabel : optionList[0], 0)
-            : decision with { Choice = match };
-    }
-
-    private static string Signature(ActivitySegment segment) =>
-        string.Join('\u001f', segment.ProcessName, segment.WindowTitle, segment.Url, segment.DocumentPath);
-
-    private static string Describe(SegmentEvidence evidence, IReadOnlyList<Client> mentionedClients)
-    {
-        var segment = evidence.Segment;
-        var text = new StringBuilder();
-        text.AppendLine($"Program: {segment.ProcessName}");
-        text.AppendLine($"Fönstertitel: {segment.WindowTitle}");
-        AppendIfPresent(text, "Webbadress", segment.Url);
-        AppendIfPresent(text, "Dokument", segment.DocumentPath);
-        if (mentionedClients.Count > 0)
-        {
-            text.AppendLine($"Kunder som nämns på skärmen: {string.Join(", ", mentionedClients.Select(c => c.Name))}");
-        }
-
-        if (!string.IsNullOrWhiteSpace(evidence.OcrText))
-        {
-            text.AppendLine("Text på skärmen (OCR):");
-            text.AppendLine(Truncate(evidence.OcrText, MaxOcrCharacters));
-        }
-
-        return text.ToString();
-    }
-
     private static string Summarize(IReadOnlyList<LabelledSegment> segments)
     {
         var text = new StringBuilder("Fönster, med tid:\n");
@@ -266,7 +195,7 @@ public sealed class TimesheetBuilder(TimesheetOptions options, IDecisionModel? d
             text.AppendLine("\nUtdrag ur skärmtext (OCR):");
             foreach (var excerpt in excerpts)
             {
-                text.AppendLine($"---\n{Truncate(excerpt.Evidence.OcrText!, 600)}");
+                text.AppendLine($"---\n{WindowClassifier.Truncate(excerpt.Evidence.OcrText!, 600)}");
             }
         }
 
@@ -279,16 +208,6 @@ public sealed class TimesheetBuilder(TimesheetOptions options, IDecisionModel? d
             .GroupBy(s => (s.Evidence.Segment.ProcessName, s.Evidence.Segment.WindowTitle, Location: s.Evidence.Segment.DocumentPath ?? s.Evidence.Segment.Url))
             .Select(g => (g.Key.ProcessName ?? "", g.Key.WindowTitle ?? "", g.Key.Location, Sum(g)))
             .OrderByDescending(w => w.Item4);
-
-    private static void AppendIfPresent(StringBuilder text, string label, string? value)
-    {
-        if (!string.IsNullOrWhiteSpace(value))
-        {
-            text.AppendLine($"{label}: {value}");
-        }
-    }
-
-    private static string Truncate(string value, int length) => value.Length <= length ? value : value[..length] + "…";
 
     private sealed class LabelledSegment(SegmentEvidence evidence, Decision label)
     {

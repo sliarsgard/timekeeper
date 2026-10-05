@@ -25,6 +25,9 @@ public sealed partial class SettingsPageViewModel : PageViewModel
     private bool _sendScreenshots;
 
     [ObservableProperty]
+    private bool _askWhenUnsure;
+
+    [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ConfidenceThresholdText))]
     private double _confidenceThreshold;
 
@@ -83,6 +86,7 @@ public sealed partial class SettingsPageViewModel : PageViewModel
             JevApiKey = JevApiKey.Trim(),
             JevModel = string.IsNullOrWhiteSpace(JevModel) ? new AppSettings().JevModel : JevModel.Trim(),
             SendScreenshots = SendScreenshots,
+            AskWhenUnsure = AskWhenUnsure,
             ConfidenceThreshold = Math.Round(ConfidenceThreshold, 2),
             RoundingMinutes = RoundingMinutes,
             Activities = activities.Count > 0 ? activities : new AppSettings().Activities,
@@ -109,6 +113,7 @@ public sealed partial class SettingsPageViewModel : PageViewModel
         JevApiKey = settings.JevApiKey;
         JevModel = settings.JevModel;
         SendScreenshots = settings.SendScreenshots;
+        AskWhenUnsure = settings.AskWhenUnsure;
         ConfidenceThreshold = settings.ConfidenceThreshold;
         RoundingMinutes = settings.RoundingMinutes;
         Activities = string.Join(", ", settings.Activities);

@@ -43,6 +43,13 @@ public sealed class ActivityTracker(IActivityStore store, TrackerOptions options
             return;
         }
 
+        var now = DateTime.UtcNow;
+        var recorded = store.GetSegments(now.AddDays(-1), now.AddMinutes(1));
+        if (recorded.Count > 0)
+        {
+            _segmenter.StartAfter(recorded.Max(s => s.EndUtc));
+        }
+
         _cancellation = new CancellationTokenSource();
         var token = _cancellation.Token;
         _loop = Task.Run(() => RunAsync(token));

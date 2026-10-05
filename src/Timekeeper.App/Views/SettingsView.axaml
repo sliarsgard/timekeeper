@@ -74,6 +74,13 @@
                             </StackPanel>
                             <ToggleSwitch Grid.Column="1" IsChecked="{Binding SendScreenshots}" OnContent="På" OffContent="Av" />
                         </Grid>
+                        <Grid Classes="setting" ColumnDefinitions="280,*">
+                            <StackPanel>
+                                <TextBlock Text="Fråga när AI:n är osäker" />
+                                <TextBlock Text="En liten ruta nere till höger där du väljer kund med ett klick. Svaret kommer appen ihåg." />
+                            </StackPanel>
+                            <ToggleSwitch Grid.Column="1" IsChecked="{Binding AskWhenUnsure}" OnContent="På" OffContent="Av" />
+                        </Grid>
                         <Border Classes="pill warning" CornerRadius="10" Padding="12,10" Margin="0,8,0,0">
                             <Grid ColumnDefinitions="Auto,*">
                                 <TextBlock Classes="icon" Text="&#xE7BA;" Margin="0,0,10,0" VerticalAlignment="Top" />

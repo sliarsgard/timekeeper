@@ -5,8 +5,13 @@ using Timekeeper.Core;
 
 namespace Timekeeper.App.ViewModels;
 
-public sealed class SegmentRowViewModel(ActivitySegment segment, IBrush brush) : ObservableObject
+public sealed partial class SegmentRowViewModel(ActivitySegment segment, IBrush brush) : ObservableObject
 {
+    /// <summary>The client the window was classified as, once it has been.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasClient))]
+    private string? _client;
+
     private static readonly IBrush AwayBrush = new ImmutableSolidColorBrush(Color.Parse("#3A4152"));
 
     public ActivitySegment Segment { get; private set; } = segment;
@@ -34,6 +39,8 @@ public sealed class SegmentRowViewModel(ActivitySegment segment, IBrush brush) :
     public string? Detail => IsAway ? null : Segment.DocumentPath ?? Segment.Url;
 
     public bool HasDetail => Detail is not null;
+
+    public bool HasClient => Client is not null;
 
     public string TimeRange => $"{Format.Time(Segment.StartUtc)}–{Format.Time(Segment.EndUtc)}";
 

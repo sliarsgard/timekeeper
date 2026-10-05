@@ -15,6 +15,7 @@ public sealed partial class TimesheetPageViewModel : PageViewModel
 {
     private readonly ITimesheetStore _timesheets;
     private readonly IActivityStore _activity;
+    private readonly ILabelStore _labels;
     private readonly HttpClient _http;
     private readonly Func<AppSettings> _settings;
     private CancellationTokenSource? _generation;
@@ -42,6 +43,7 @@ public sealed partial class TimesheetPageViewModel : PageViewModel
     public TimesheetPageViewModel(
         ITimesheetStore timesheets,
         IActivityStore activity,
+        ILabelStore labels,
         HttpClient http,
         Func<AppSettings> settings,
         DaySelection day)
@@ -49,6 +51,7 @@ public sealed partial class TimesheetPageViewModel : PageViewModel
     {
         _timesheets = timesheets;
         _activity = activity;
+        _labels = labels;
         _http = http;
         _settings = settings;
         Day = day;
@@ -110,12 +113,13 @@ public sealed partial class TimesheetPageViewModel : PageViewModel
         try
         {
             var settings = _settings();
-            var evidence = GatherEvidence();
+            var evidence = Evidence.Gather(_activity, Day.StartUtc, Day.EndUtc);
             var clients = _timesheets.GetClients();
             var builder = new TimesheetBuilder(
                 settings.ToTimesheetOptions(),
-                settings.JevApiKey.Length > 0 ? new JevDecisionModel(_http, settings.JevApiKey, settings.JevModel) : null,
-                settings.OpenAiApiKey.Length > 0 ? new LunaLanguageModel(_http, settings.OpenAiApiKey, settings.LunaModel) : null);
+                settings.CreateDecisionModel(_http),
+                settings.CreateLanguageModel(_http),
+                _labels);
 
             var progress = new Progress<TimesheetProgress>(p =>
             {
@@ -195,22 +199,6 @@ public sealed partial class TimesheetPageViewModel : PageViewModel
     partial void OnErrorChanged(string? value) => OnPropertyChanged(nameof(HasError));
 
     private bool CanGenerate() => !IsGenerating;
-
-    private IReadOnlyList<SegmentEvidence> GatherEvidence()
-    {
-        var firstScreenshots = _activity.GetScreenshots(Day.StartUtc, Day.EndUtc)
-            .GroupBy(s => s.SegmentId)
-            .ToDictionary(g => g.Key, g => g.First());
-
-        return _activity.GetSegments(Day.StartUtc, Day.EndUtc)
-            .Where(s => !string.Equals(s.ProcessName, "Timekeeper", StringComparison.OrdinalIgnoreCase))
-            .Select(s =>
-            {
-                firstScreenshots.TryGetValue(s.Id, out var screenshot);
-                return new SegmentEvidence(s, screenshot?.OcrText, screenshot?.FilePath);
-            })
-            .ToList();
-    }
 
     private void OnDayChanged(object? sender, PropertyChangedEventArgs e)
     {

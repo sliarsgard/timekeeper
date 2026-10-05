@@ -175,6 +175,21 @@ public class TimesheetBuilderTests
         Assert.Equal("Bokslut, avstämning bank", entry.Comment);
     }
 
+    [Fact]
+    public async Task Windows_classified_during_the_day_are_not_sent_to_a_model_again()
+    {
+        using var database = new TempDatabase();
+        var labels = new Timekeeper.Data.SqliteTimesheetStore(database.Path);
+        var jev = new CountingDecisionModel(new Decision("Svensson Bygg AB", 0.9));
+        var segments = new[] { Segment(0, 60, "Fortnox") };
+
+        await new TimesheetBuilder(Options, jev, null, labels).BuildAsync(Day, segments, Clients);
+        var entries = await new TimesheetBuilder(Options, jev, null, labels).BuildAsync(Day, segments, Clients);
+
+        Assert.Equal("Svensson Bygg AB", Assert.Single(entries).Client);
+        Assert.Equal(1, jev.ClientQuestions);
+    }
+
     private sealed class FakeDecisionModel(Decision answer) : IDecisionModel
     {
         public Task<Decision> ChooseAsync(string question, string context, IReadOnlyList<string> options, CancellationToken cancellationToken) =>

@@ -55,12 +55,7 @@ public sealed partial class ClientsPageViewModel : PageViewModel
         : base("Kunder", "")
     {
         _store = store;
-        foreach (var client in store.GetClients())
-        {
-            _all.Add(new ClientRowViewModel(client, Save));
-        }
-
-        ApplyFilter();
+        Load();
     }
 
     public ObservableCollection<ClientRowViewModel> Visible { get; } = [];
@@ -110,7 +105,21 @@ public sealed partial class ClientsPageViewModel : PageViewModel
         ApplyFilter();
     }
 
+    /// <summary>Clients can also be added from a question, so reload whenever the page is shown.</summary>
+    public override void OnActivated() => Load();
+
     partial void OnFilterChanged(string value) => ApplyFilter();
+
+    private void Load()
+    {
+        _all.Clear();
+        foreach (var client in _store.GetClients())
+        {
+            _all.Add(new ClientRowViewModel(client, Save));
+        }
+
+        ApplyFilter();
+    }
 
     private void Save(ClientRowViewModel row)
     {

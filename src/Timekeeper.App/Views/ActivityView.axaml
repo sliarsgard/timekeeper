@@ -45,6 +45,24 @@
                                RangeEnd="{Binding RangeEnd}"
                                TrackBrush="{StaticResource SurfaceRaisedBrush}"
                                LabelBrush="{StaticResource TextMutedBrush}" />
+                <Grid ColumnDefinitions="Auto,*" IsVisible="{Binding HasClientsToday}">
+                    <TextBlock Classes="label" Text="Kunder" Margin="0,1,14,0" />
+                    <ItemsControl Grid.Column="1" ItemsSource="{Binding ClientsToday}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:ClientTime">
+                                <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,0,20,4">
+                                    <TextBlock Text="{Binding Client}" FontSize="12" />
+                                    <TextBlock Text="{Binding Duration}" FontSize="12" Classes="muted" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </Grid>
                 <ItemsControl ItemsSource="{Binding Legend}">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
@@ -70,11 +88,15 @@
                 <ListBox Classes="rows" ItemsSource="{Binding Rows}" SelectedItem="{Binding SelectedRow}">
                     <ListBox.ItemTemplate>
                         <DataTemplate x:DataType="vm:SegmentRowViewModel">
-                            <Grid ColumnDefinitions="96,150,*,Auto" Classes.dim="{Binding IsAway}">
+                            <Grid ColumnDefinitions="96,170,*,Auto" Classes.dim="{Binding IsAway}">
                                 <TextBlock Text="{Binding TimeRange}" Classes="secondary" FontSize="13" VerticalAlignment="Center" />
-                                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="9" VerticalAlignment="Center">
-                                    <Border Width="8" Height="8" CornerRadius="4" Background="{Binding Brush}" VerticalAlignment="Center" />
-                                    <TextBlock Text="{Binding Program}" FontWeight="Medium" TextTrimming="CharacterEllipsis" />
+                                <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center" Margin="0,0,12,0">
+                                    <StackPanel Orientation="Horizontal" Spacing="9">
+                                        <Border Width="8" Height="8" CornerRadius="4" Background="{Binding Brush}" VerticalAlignment="Center" />
+                                        <TextBlock Text="{Binding Program}" FontWeight="Medium" TextTrimming="CharacterEllipsis" />
+                                    </StackPanel>
+                                    <TextBlock Text="{Binding Client}" IsVisible="{Binding HasClient}" FontSize="12"
+                                               Foreground="{StaticResource AccentBrush}" TextTrimming="CharacterEllipsis" Margin="17,0,0,0" />
                                 </StackPanel>
                                 <StackPanel Grid.Column="2" Spacing="2" VerticalAlignment="Center" Margin="0,0,16,0">
                                     <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" />

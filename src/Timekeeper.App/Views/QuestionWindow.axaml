@@ -1,0 +1,62 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Timekeeper.App.ViewModels"
+        x:Class="Timekeeper.App.Views.QuestionWindow"
+        x:DataType="vm:QuestionViewModel"
+        Title="Timekeeper"
+        Width="400"
+        SizeToContent="Height"
+        WindowDecorations="None"
+        CanResize="False"
+        ShowInTaskbar="False"
+        ShowActivated="False"
+        Topmost="True"
+        TransparencyLevelHint="Transparent"
+        Background="Transparent"
+        Foreground="{StaticResource TextPrimaryBrush}">
+    <!-- The margin leaves room for the shadow inside the transparent window. -->
+    <Border Classes="card appear" Margin="16" Padding="18,16"
+            BorderBrush="{StaticResource StrokeStrongBrush}"
+            BoxShadow="0 10 30 0 #99000000">
+        <StackPanel Spacing="12">
+            <Grid ColumnDefinitions="Auto,*,Auto">
+                <Border Width="28" Height="28" CornerRadius="14" Background="{StaticResource AccentSoftBrush}" VerticalAlignment="Top">
+                    <TextBlock Classes="icon" Text="&#xE945;" FontSize="12" Foreground="{StaticResource AccentBrush}"
+                               HorizontalAlignment="Center" />
+                </Border>
+                <StackPanel Grid.Column="1" Spacing="3" Margin="12,0,8,0">
+                    <TextBlock Text="Vilken kund jobbar du med?" FontWeight="SemiBold" />
+                    <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis">
+                        <Run Text="{Binding Program}" FontWeight="Medium" />
+                        <Run Text=" · " />
+                        <Run Text="{Binding Title}" />
+                    </TextBlock>
+                </StackPanel>
+                <Button Grid.Column="2" Classes="ghost icon" Width="28" Height="28" VerticalAlignment="Top"
+                        Command="{Binding LaterCommand}" ToolTip.Tip="Fråga inte om det här fönstret">
+                    <TextBlock Classes="icon" Text="&#xE711;" FontSize="10" />
+                </Button>
+            </Grid>
+
+            <WrapPanel>
+                <Button Classes="primary" Margin="0,0,8,8" IsVisible="{Binding HasSuggestion}"
+                        Content="{Binding Suggestion}" Command="{Binding ChooseSuggestionCommand}" />
+                <Button Margin="0,0,8,8" Content="Internt" Command="{Binding ChooseInternalCommand}" />
+            </WrapPanel>
+
+            <Grid ColumnDefinitions="*,Auto">
+                <AutoCompleteBox Text="{Binding OtherClient}" ItemsSource="{Binding Clients}"
+                                 FilterMode="ContainsOrdinal" PlaceholderText="Annan kund…" />
+                <Button Grid.Column="1" Margin="8,0,0,0" Content="Välj" Command="{Binding ChooseOtherCommand}" />
+            </Grid>
+
+            <Grid ColumnDefinitions="*,Auto">
+                <TextBlock Classes="muted" FontSize="11" VerticalAlignment="Center" TextWrapping="Wrap"
+                           Text="Svaret sparas för fönstret och används i tidsloggen." />
+                <Button Grid.Column="1" Classes="ghost" FontSize="12" Padding="8,4" Margin="8,0,0,0"
+                        Content="Sluta fråga" Command="{Binding StopAskingCommand}"
+                        ToolTip.Tip="Kan slås på igen under Inställningar" />
+            </Grid>
+        </StackPanel>
+    </Border>
+</Window>

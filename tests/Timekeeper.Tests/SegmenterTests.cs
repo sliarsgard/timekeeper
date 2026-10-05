@@ -117,4 +117,15 @@ public class SegmenterTests
         Assert.True(next.Started);
         Assert.Null(next.Closed);
     }
+
+    [Fact]
+    public void Idle_time_does_not_reach_back_into_time_already_recorded_by_an_earlier_run()
+    {
+        var segmenter = new Segmenter(MaxGap);
+        segmenter.StartAfter(T0.AddMinutes(10));
+
+        var change = segmenter.Add(new ActivitySample(T0.AddMinutes(20), ActivityState.Idle, TimeSpan.FromMinutes(15)));
+
+        Assert.Equal(T0.AddMinutes(10), change.Current.StartUtc);
+    }
 }

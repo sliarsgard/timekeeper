@@ -64,4 +64,17 @@ public sealed class SqliteTimesheetStoreTests : IDisposable
         Assert.Equal("Avstämning", loaded.Comment);
         Assert.Null(loaded.Confidence);
     }
+
+    [Fact]
+    public void SaveLabel_replaces_the_label_for_the_same_window()
+    {
+        _store.SaveLabel(new WindowLabel("excel|Bokslut.xlsx", "Internt", 0.2, LabelSource.Model));
+        _store.SaveLabel(new WindowLabel("excel|Bokslut.xlsx", "Bageriet i Lund AB", 1, LabelSource.User));
+        _store.SaveLabel(new WindowLabel("olk|Inkorg", "Internt", 0, LabelSource.Guess));
+
+        var labels = _store.GetLabels();
+
+        Assert.Equal(2, labels.Count);
+        Assert.Equal(new WindowLabel("excel|Bokslut.xlsx", "Bageriet i Lund AB", 1, LabelSource.User), labels["excel|Bokslut.xlsx"]);
+    }
 }

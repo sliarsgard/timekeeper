@@ -5,7 +5,7 @@ using static Timekeeper.Data.Sql;
 namespace Timekeeper.Data;
 
 /// <summary>Stores clients and timesheets in the same SQLite file as the activity log.</summary>
-public sealed class SqliteTimesheetStore : ITimesheetStore
+public sealed class SqliteTimesheetStore : ITimesheetStore, ILabelStore
 {
     private const string Schema = """
         CREATE TABLE IF NOT EXISTS clients (
@@ -24,6 +24,13 @@ public sealed class SqliteTimesheetStore : ITimesheetStore
             confidence REAL
         );
         CREATE INDEX IF NOT EXISTS ix_timesheet_entries_date ON timesheet_entries (date);
+
+        CREATE TABLE IF NOT EXISTS window_labels (
+            signature TEXT PRIMARY KEY,
+            client TEXT NOT NULL,
+            confidence REAL NOT NULL,
+            source TEXT NOT NULL
+        );
         """;
 
     // Keywords are kept as one line of text, the way the user types them.
@@ -153,6 +160,42 @@ public sealed class SqliteTimesheetStore : ITimesheetStore
     {
         using var connection = Open();
         Command(connection, "DELETE FROM timesheet_entries WHERE id = $id", ("$id", id)).ExecuteNonQuery();
+    }
+
+    public IReadOnlyDictionary<string, WindowLabel> GetLabels()
+    {
+        using var connection = Open();
+        using var reader = Command(connection, "SELECT signature, client, confidence, source FROM window_labels").ExecuteReader();
+        var labels = new Dictionary<string, WindowLabel>();
+        while (reader.Read())
+        {
+            var label = new WindowLabel(
+                reader.GetString(0),
+                reader.GetString(1),
+                reader.GetDouble(2),
+                Enum.Parse<LabelSource>(reader.GetString(3)));
+            labels[label.Signature] = label;
+        }
+
+        return labels;
+    }
+
+    public void SaveLabel(WindowLabel label)
+    {
+        using var connection = Open();
+        Command(
+                connection,
+                """
+                INSERT INTO window_labels (signature, client, confidence, source)
+                VALUES ($signature, $client, $confidence, $source)
+                ON CONFLICT (signature) DO UPDATE
+                SET client = excluded.client, confidence = excluded.confidence, source = excluded.source
+                """,
+                ("$signature", label.Signature),
+                ("$client", label.Client),
+                ("$confidence", label.Confidence),
+                ("$source", label.Source.ToString()))
+            .ExecuteNonQuery();
     }
 
     private static void Insert(SqliteConnection connection, TimesheetEntry entry)

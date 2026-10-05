@@ -5,10 +5,13 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Timekeeper.App.Controls;
 using Timekeeper.Core;
+using Timekeeper.Core.Timesheets;
 
 namespace Timekeeper.App.ViewModels;
 
 public sealed record LegendItem(string Label, IBrush Brush, string Duration);
+
+public sealed record ClientTime(string Client, string Duration);
 
 /// <summary>The raw record of a day: what was on screen, when, and for how long.</summary>
 public sealed partial class ActivityPageViewModel : PageViewModel
@@ -16,7 +19,10 @@ public sealed partial class ActivityPageViewModel : PageViewModel
     private static readonly TimeSpan WorkdayStart = TimeSpan.FromHours(8);
     private static readonly TimeSpan WorkdayEnd = TimeSpan.FromHours(17);
 
+    private const string Unclassified = "Ej klassat ännu";
+
     private readonly IActivityStore _store;
+    private readonly ILabelStore _labels;
     private readonly Dictionary<long, SegmentRowViewModel> _rowsById = [];
     private ProgramPalette _palette = new();
 
@@ -31,6 +37,10 @@ public sealed partial class ActivityPageViewModel : PageViewModel
 
     [ObservableProperty]
     private IReadOnlyList<LegendItem> _legend = [];
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasClientsToday))]
+    private IReadOnlyList<ClientTime> _clientsToday = [];
 
     [ObservableProperty]
     private DateTime _rangeStart;
@@ -50,10 +60,11 @@ public sealed partial class ActivityPageViewModel : PageViewModel
     [ObservableProperty]
     private string _switches = "0";
 
-    public ActivityPageViewModel(IActivityStore store, DaySelection day)
+    public ActivityPageViewModel(IActivityStore store, ILabelStore labels, DaySelection day)
         : base("Aktivitet", "")
     {
         _store = store;
+        _labels = labels;
         Day = day;
         Day.PropertyChanged += OnDayChanged;
         Refresh();
@@ -66,6 +77,8 @@ public sealed partial class ActivityPageViewModel : PageViewModel
 
     public bool IsEmpty => Rows.Count == 0;
 
+    public bool HasClientsToday => ClientsToday.Count > 0;
+
     public void OnSampled()
     {
         if (Day.IsToday)
@@ -73,6 +86,8 @@ public sealed partial class ActivityPageViewModel : PageViewModel
             Refresh();
         }
     }
+
+    public void OnLabelsChanged() => Refresh();
 
     [RelayCommand]
     private void CloseDetail() => SelectedRow = null;
@@ -119,8 +134,34 @@ public sealed partial class ActivityPageViewModel : PageViewModel
         }
 
         OnPropertyChanged(nameof(IsEmpty));
+        UpdateClients(segments);
         UpdateSummary(segments);
         UpdateTimeline(segments);
+    }
+
+    /// <summary>Shows each row's client and a rough split of the day per client.</summary>
+    /// <remarks>Rough because short detours are only folded into the surrounding client in the timesheet.</remarks>
+    private void UpdateClients(IReadOnlyList<ActivitySegment> segments)
+    {
+        var labels = _labels.GetLabels();
+        var perClient = new Dictionary<string, TimeSpan>();
+        foreach (var segment in segments.Where(s => s.State == ActivityState.Active))
+        {
+            var client = labels.TryGetValue(WindowSignature.Of(segment), out var label) ? label.Client : null;
+            if (_rowsById.TryGetValue(segment.Id, out var row))
+            {
+                row.Client = client;
+            }
+
+            var key = client ?? Unclassified;
+            perClient[key] = perClient.GetValueOrDefault(key) + segment.Duration;
+        }
+
+        ClientsToday = perClient
+            .OrderBy(p => p.Key == Unclassified)
+            .ThenByDescending(p => p.Value)
+            .Select(p => new ClientTime(p.Key, Format.Duration(p.Value)))
+            .ToList();
     }
 
     private void UpdateSummary(IReadOnlyList<ActivitySegment> segments)

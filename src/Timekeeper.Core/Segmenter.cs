@@ -8,6 +8,7 @@ public sealed record SegmentChange(ActivitySegment Current, ActivitySegment? Clo
 public sealed class Segmenter(TimeSpan maxSampleGap)
 {
     private ActivitySegment? _current;
+    private DateTime _notBeforeUtc = DateTime.MinValue;
 
     public SegmentChange Add(ActivitySample sample)
     {
@@ -22,11 +23,8 @@ public sealed class Segmenter(TimeSpan maxSampleGap)
 
         // Idle time began at the last input, not when the threshold was crossed.
         var start = sample.State == ActivityState.Idle ? sample.TimestampUtc - sample.IdleFor : sample.TimestampUtc;
-        if (previous is not null)
-        {
-            var earliest = continuous ? previous.StartUtc : previous.EndUtc;
-            start = start < earliest ? earliest : start;
-        }
+        var earliest = previous is null ? _notBeforeUtc : continuous ? previous.StartUtc : previous.EndUtc;
+        start = start < earliest ? earliest : start;
 
         // Back-to-back segments share a boundary so no time falls between samples.
         if (continuous)
@@ -46,6 +44,12 @@ public sealed class Segmenter(TimeSpan maxSampleGap)
         };
         return new SegmentChange(_current, previous, Started: true);
     }
+
+    /// <summary>
+    /// Keeps the next segment from starting before time that is already recorded, e.g. by an earlier
+    /// run of the app. Otherwise idle time reaching back to the last input could be counted twice.
+    /// </summary>
+    public void StartAfter(DateTime utc) => _notBeforeUtc = utc;
 
     /// <summary>Ends the current segment, e.g. when tracking is paused.</summary>
     public ActivitySegment? Close()

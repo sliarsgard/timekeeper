@@ -17,6 +17,10 @@ public sealed record AppSettings
     public string LunaModel { get; init; } = LunaLanguageModel.DefaultModel;
     public string JevModel { get; init; } = JevDecisionModel.DefaultModel;
     public bool SendScreenshots { get; init; } = true;
+
+    /// <summary>Show a small question when the classification of a window is unsure.</summary>
+    public bool AskWhenUnsure { get; init; } = true;
+
     public double ConfidenceThreshold { get; init; } = 0.75;
 
     public int RoundingMinutes { get; init; } = 15;
@@ -26,6 +30,12 @@ public sealed record AppSettings
     public int IdleMinutes { get; init; } = 5;
     public int ScreenshotIntervalMinutes { get; init; } = 2;
     public int ScreenshotRetentionDays { get; init; } = 14;
+
+    public IDecisionModel? CreateDecisionModel(HttpClient http) =>
+        JevApiKey.Length > 0 ? new JevDecisionModel(http, JevApiKey, JevModel) : null;
+
+    public ILanguageModel? CreateLanguageModel(HttpClient http) =>
+        OpenAiApiKey.Length > 0 ? new LunaLanguageModel(http, OpenAiApiKey, LunaModel) : null;
 
     public TrackerOptions ToTrackerOptions() => new()
     {
