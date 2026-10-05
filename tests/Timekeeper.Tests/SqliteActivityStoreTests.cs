@@ -90,4 +90,24 @@ public sealed class SqliteActivityStoreTests : IDisposable
             [@"C:\New\screenshots\2026-10-05\080000-1.jpg", @"D:\Elsewhere\a.jpg"],
             _store.GetScreenshots(segment.Id).Select(s => s.FilePath));
     }
+
+    [Fact]
+    public void UpdateSegment_changes_state_and_window_but_keeps_the_times()
+    {
+        var segment = Insert(T0, T0.AddMinutes(80));
+
+        _store.UpdateSegment(new ActivitySegment
+        {
+            Id = segment.Id,
+            StartUtc = T0.AddHours(5),
+            EndUtc = T0.AddHours(6),
+            State = ActivityState.Active,
+            ProcessName = "Möte",
+            WindowTitle = "Möte 08:00–09:20",
+        });
+
+        var loaded = Assert.Single(_store.GetSegments(T0, T0.AddHours(2)));
+        Assert.Equal((ActivityState.Active, "Möte", "Möte 08:00–09:20", (string?)null), (loaded.State, loaded.ProcessName, loaded.WindowTitle, loaded.DocumentPath));
+        Assert.Equal((T0, T0.AddMinutes(80)), (loaded.StartUtc, loaded.EndUtc));
+    }
 }

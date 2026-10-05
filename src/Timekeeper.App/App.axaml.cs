@@ -66,7 +66,7 @@ public partial class App : Application
             _shell = new ShellViewModel(_tracker, activityStore, new UpdateService());
             var day = new DaySelection();
             _shell.SetPages(
-                new ActivityPageViewModel(activityStore, timesheetStore, day),
+                new ActivityPageViewModel(activityStore, timesheetStore, timesheetStore, day),
                 new TimesheetPageViewModel(timesheetStore, activityStore, timesheetStore, Http, () => _settings, day),
                 new ClientsPageViewModel(timesheetStore),
                 new SettingsPageViewModel(() => _settings, SaveSettings, _shell));
@@ -142,9 +142,12 @@ public partial class App : Application
 
     private void ShowQuestion(WindowQuestion question)
     {
-        if (_questionWindow is not null || ForegroundWindow.GetIdleTime() < QuietBeforeQuestion)
+        // Not now; the same question comes back on a later run. During a call the screen may be
+        // shared, and the question shows window titles and client names.
+        if (_questionWindow is not null
+            || ForegroundWindow.GetIdleTime() < QuietBeforeQuestion
+            || MediaDeviceUsage.IsMicrophoneOrCameraInUse())
         {
-            // Not now; the same question comes back on a later run.
             return;
         }
 

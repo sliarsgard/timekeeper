@@ -72,6 +72,25 @@ public sealed class SqliteActivityStore : IActivityStore
             .ExecuteNonQuery();
     }
 
+    public void UpdateSegment(ActivitySegment segment)
+    {
+        using var connection = Open();
+        Command(
+                connection,
+                """
+                UPDATE segments
+                SET state = $state, process = $process, title = $title, url = $url, document = $document
+                WHERE id = $id
+                """,
+                ("$state", segment.State.ToString()),
+                ("$process", segment.ProcessName),
+                ("$title", segment.WindowTitle),
+                ("$url", segment.Url),
+                ("$document", segment.DocumentPath),
+                ("$id", segment.Id))
+            .ExecuteNonQuery();
+    }
+
     public IReadOnlyList<ActivitySegment> GetSegments(DateTime fromUtc, DateTime toUtc)
     {
         using var connection = Open();

@@ -21,8 +21,12 @@ public sealed partial class ActivityPageViewModel : PageViewModel
 
     private const string Unclassified = "Ej klassat ännu";
 
+    /// <summary>Program name for time away that the user has marked as a meeting or call.</summary>
+    private const string MeetingProgram = "Möte";
+
     private readonly IActivityStore _store;
     private readonly ILabelStore _labels;
+    private readonly ITimesheetStore _timesheets;
     private readonly Dictionary<long, SegmentRowViewModel> _rowsById = [];
     private ProgramPalette _palette = new();
 
@@ -60,11 +64,12 @@ public sealed partial class ActivityPageViewModel : PageViewModel
     [ObservableProperty]
     private string _switches = "0";
 
-    public ActivityPageViewModel(IActivityStore store, ILabelStore labels, DaySelection day)
+    public ActivityPageViewModel(IActivityStore store, ILabelStore labels, ITimesheetStore timesheets, DaySelection day)
         : base("Aktivitet", "")
     {
         _store = store;
         _labels = labels;
+        _timesheets = timesheets;
         Day = day;
         Day.PropertyChanged += OnDayChanged;
         Refresh();
@@ -95,7 +100,13 @@ public sealed partial class ActivityPageViewModel : PageViewModel
     partial void OnSelectedRowChanged(SegmentRowViewModel? value)
     {
         Detail?.Dispose();
-        Detail = value is null ? null : new SegmentDetailViewModel(value, _store);
+        Detail = value is null
+            ? null
+            : new SegmentDetailViewModel(
+                value,
+                _store,
+                _timesheets.GetClients().Select(c => c.Name).Append(TimesheetBuilder.InternalLabel).ToList(),
+                MarkAsWork);
     }
 
     private void OnDayChanged(object? sender, PropertyChangedEventArgs e)
@@ -105,6 +116,41 @@ public sealed partial class ActivityPageViewModel : PageViewModel
             return;
         }
 
+        Reload();
+    }
+
+    /// <summary>
+    /// Turns time away from the computer into work for a client, e.g. a meeting in a room or a
+    /// phone call. The segment becomes a "Möte" with the user's answer as its classification.
+    /// </summary>
+    private void MarkAsWork(SegmentRowViewModel row, string client)
+    {
+        var away = row.Segment;
+        var meeting = new ActivitySegment
+        {
+            Id = away.Id,
+            StartUtc = away.StartUtc,
+            EndUtc = away.EndUtc,
+            State = ActivityState.Active,
+            ProcessName = MeetingProgram,
+
+            // The times make the title unique, so each marked stretch keeps its own classification.
+            WindowTitle = $"Möte eller samtal {Format.Time(away.StartUtc)}–{Format.Time(away.EndUtc)}",
+        };
+        _store.UpdateSegment(meeting);
+
+        if (client != TimesheetBuilder.InternalLabel
+            && !_timesheets.GetClients().Any(c => string.Equals(c.Name, client, StringComparison.CurrentCultureIgnoreCase)))
+        {
+            _timesheets.SaveClient(new Client(0, client, []));
+        }
+
+        _labels.SaveLabel(new WindowLabel(WindowSignature.Of(meeting), client, 1, LabelSource.User));
+        Reload();
+    }
+
+    private void Reload()
+    {
         SelectedRow = null;
         Rows.Clear();
         _rowsById.Clear();

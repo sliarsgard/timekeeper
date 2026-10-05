@@ -145,7 +145,8 @@ public sealed class ActivityTracker(IActivityStore store, TrackerOptions options
         }
 
         var idleFor = ForegroundWindow.GetIdleTime();
-        if (idleFor >= _options.IdleThreshold)
+        // Sitting still in a call or meeting is work, not being away.
+        if (idleFor >= _options.IdleThreshold && !MediaDeviceUsage.IsMicrophoneOrCameraInUse())
         {
             return new ActivitySample(now, ActivityState.Idle, idleFor);
         }

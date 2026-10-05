@@ -161,8 +161,26 @@
                             </StackPanel>
 
                             <TextBlock Grid.Row="1" Margin="20,0,20,12" Classes="muted" FontSize="12" TextWrapping="Wrap"
-                                       IsVisible="{Binding !HasScreenshots}"
+                                       IsVisible="{Binding ShowNoScreenshots}"
                                        Text="Inga skärmdumpar för den här raden." />
+
+                            <!-- Time away that was really work: a meeting in a room, a phone call -->
+                            <Border Grid.Row="1" Margin="20,0,20,12" Padding="14" CornerRadius="10"
+                                    Background="{DynamicResource SurfaceRaisedBrush}" IsVisible="{Binding Row.IsAway}">
+                                <StackPanel Spacing="10">
+                                    <StackPanel Spacing="3">
+                                        <TextBlock Text="Var det ett möte eller samtal?" FontWeight="SemiBold" />
+                                        <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+                                                   Text="Välj kund så räknas tiden som arbete i tidsloggen." />
+                                    </StackPanel>
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <AutoCompleteBox Text="{Binding WorkClient}" ItemsSource="{Binding Clients}"
+                                                         FilterMode="ContainsOrdinal" PlaceholderText="Kund eller Internt" />
+                                        <Button Grid.Column="1" Classes="primary" Margin="8,0,0,0" Content="Räkna som arbete"
+                                                Command="{Binding MarkAsWorkCommand}" />
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
 
                             <Border Grid.Row="2" BorderBrush="{DynamicResource StrokeBrush}" BorderThickness="0,1,0,0" IsVisible="{Binding HasScreenshots}">
                                 <DockPanel Margin="20,14,20,16">

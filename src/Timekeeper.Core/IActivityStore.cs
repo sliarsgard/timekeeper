@@ -7,6 +7,9 @@ public interface IActivityStore
 
     void UpdateSegmentEnd(ActivitySegment segment);
 
+    /// <summary>Overwrites everything about a stored segment except its id and times, e.g. to correct its state.</summary>
+    void UpdateSegment(ActivitySegment segment);
+
     /// <summary>Returns the segments overlapping the interval, ordered by start.</summary>
     IReadOnlyList<ActivitySegment> GetSegments(DateTime fromUtc, DateTime toUtc);
 
