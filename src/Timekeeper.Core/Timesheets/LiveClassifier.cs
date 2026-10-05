@@ -8,13 +8,19 @@ public sealed record LiveClassifierSetup(
     bool AskWhenUnsure);
 
 /// <summary>A window the classification is unsure about, to ask the user about.</summary>
+/// <param name="SegmentId">Set for shared windows such as Fortnox: the answer only applies to that occasion.</param>
 /// <param name="Suggestion">The most likely client, or null when there is no good guess.</param>
 public sealed record WindowQuestion(
     string Signature,
+    long? SegmentId,
     string? ProcessName,
     string Title,
     string? Suggestion,
-    IReadOnlyList<string> Clients);
+    IReadOnlyList<string> Clients)
+{
+    /// <summary>Identifies what is being asked about, so it is only asked once.</summary>
+    public string Key => SegmentId is { } id ? $"#{id}" : Signature;
+}
 
 /// <summary>
 /// Classifies windows during the day, as soon as they have been used for a while, so the timesheet
@@ -22,7 +28,7 @@ public sealed record WindowQuestion(
 /// </summary>
 public sealed class LiveClassifier(IActivityStore activityStore, ITimesheetStore timesheetStore, ILabelStore labelStore)
 {
-    /// <summary>Windows that only flash by are not worth a model call.</summary>
+    /// <summary>Windows that only flash by are not worth a model call; the surrounding work decides them.</summary>
     public static readonly TimeSpan MinimumWindowTime = TimeSpan.FromMinutes(1);
 
     /// <summary>Only windows that matter for the timesheet are worth interrupting the user for.</summary>
@@ -40,8 +46,8 @@ public sealed class LiveClassifier(IActivityStore activityStore, ITimesheetStore
     public event EventHandler? LabelsChanged;
 
     /// <summary>
-    /// Classifies the day's windows that have been used long enough and are not yet classified,
-    /// then returns a question about an unsure window if it is time to ask one.
+    /// Classifies the day's windows that have been used long enough and are not yet known, with the
+    /// surrounding work as context, then returns a question about an unsure one if it is time to ask.
     /// </summary>
     /// <remarks>Model failures propagate; already stored labels are kept and the rest is retried next run.</remarks>
     public async Task<WindowQuestion?> RunOnceAsync(
@@ -51,64 +57,79 @@ public sealed class LiveClassifier(IActivityStore activityStore, ITimesheetStore
         DateTime nowUtc,
         CancellationToken cancellationToken = default)
     {
-        var windows = Evidence.Gather(activityStore, dayStartUtc, dayEndUtc)
-            .Where(e => e.Segment.State == ActivityState.Active)
-            .GroupBy(e => WindowSignature.Of(e.Segment))
-            .Select(g => new Window(
-                g.Key,
-                g.FirstOrDefault(e => e.OcrText is not null) ?? g.First(),
-                g.Aggregate(TimeSpan.Zero, (sum, e) => sum + e.Segment.Duration),
-                g.Max(e => e.Segment.EndUtc)))
-            .Where(w => w.TimeSpent >= MinimumWindowTime)
-            .OrderByDescending(w => w.LastSeenUtc)
-            .ToList();
-
+        var active = TimesheetBuilder.Active(Evidence.Gather(activityStore, dayStartUtc, dayEndUtc));
         var clients = timesheetStore.GetClients();
         var classifier = new WindowClassifier(setup.Options, setup.DecisionModel, setup.LanguageModel, clients);
-        var labels = new Dictionary<string, WindowLabel>(labelStore.GetLabels());
+        var labels = new StoredLabels(labelStore, active);
+        var day = labels.Attribute(active, classifier);
 
-        var classified = 0;
-        try
+        if (classifier.HasModels)
         {
-            foreach (var window in windows)
+            var classified = 0;
+            try
             {
-                if (classified == MaxClassificationsPerRun)
+                foreach (var index in TimesheetBuilder.Pending(active, classifier, labels, MinimumWindowTime))
                 {
-                    break;
+                    if (classified == MaxClassificationsPerRun)
+                    {
+                        break;
+                    }
+
+                    // An ordinary window is judged on all its time today; the occasion still in front may grow.
+                    var segment = active[index].Segment;
+                    var shared = DayAttribution.IsShared(segment);
+                    if ((shared && index == active.Count - 1)
+                        || (!shared && TimeSpent(active, WindowSignature.Of(segment)) < MinimumWindowTime))
+                    {
+                        continue;
+                    }
+
+                    var label = await classifier.ClassifyAsync(
+                        active[index],
+                        labels.For(segment),
+                        DayAttribution.Surroundings(day, index),
+                        cancellationToken);
+                    labels.Save(segment, label);
+                    classified++;
                 }
-
-                labels.TryGetValue(window.Signature, out var label);
-
-                // Guesses made without models are revisited once a model is available.
-                if (label is not null && !(label.Source == LabelSource.Guess && classifier.HasModels))
-                {
-                    continue;
-                }
-
-                label = await classifier.ClassifyAsync(window.Evidence, label, cancellationToken);
-                labelStore.SaveLabel(label);
-                labels[window.Signature] = label;
-                classified++;
             }
-        }
-        finally
-        {
-            if (classified > 0)
+            finally
             {
-                LabelsChanged?.Invoke(this, EventArgs.Empty);
+                if (classified > 0)
+                {
+                    LabelsChanged?.Invoke(this, EventArgs.Empty);
+                }
             }
+
+            day = labels.Attribute(active, classifier);
         }
 
-        return NextQuestion(setup, windows, labels, clients, nowUtc);
+        return NextQuestion(setup, day, clients, nowUtc);
     }
 
-    /// <summary>Records that the question was shown, so the same window is not asked about again.</summary>
-    public void MarkAsked(string signature, DateTime nowUtc)
+    /// <summary>Records that the question was shown, so the same thing is not asked about again.</summary>
+    public void MarkAsked(string key, DateTime nowUtc)
     {
-        _asked.Add(signature);
+        _asked.Add(key);
         _lastAskedUtc = nowUtc;
     }
 
+    public void Answer(WindowQuestion question, string client)
+    {
+        var label = new WindowLabel(question.Signature, client, 1, LabelSource.User);
+        if (question.SegmentId is { } segmentId)
+        {
+            labelStore.SaveOccasionLabel(segmentId, label);
+        }
+        else
+        {
+            labelStore.SaveLabel(label);
+        }
+
+        LabelsChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>Answers for an ordinary window, which then applies wherever that window appears.</summary>
     public void Answer(string signature, string client)
     {
         labelStore.SaveLabel(new WindowLabel(signature, client, 1, LabelSource.User));
@@ -117,8 +138,7 @@ public sealed class LiveClassifier(IActivityStore activityStore, ITimesheetStore
 
     private WindowQuestion? NextQuestion(
         LiveClassifierSetup setup,
-        IReadOnlyList<Window> windows,
-        IReadOnlyDictionary<string, WindowLabel> labels,
+        IReadOnlyList<AttributedSegment> day,
         IReadOnlyList<Client> clients,
         DateTime nowUtc)
     {
@@ -127,29 +147,38 @@ public sealed class LiveClassifier(IActivityStore activityStore, ITimesheetStore
             return null;
         }
 
-        // The most recent window first: that is the one the user remembers best.
-        foreach (var window in windows)
+        // Ordinary windows are asked about once for all their time, shared ones per occasion;
+        // the most recent first, as that is what the user remembers best.
+        var candidates = day
+            .GroupBy(a => DayAttribution.IsShared(a.Evidence.Segment) ? $"#{a.Evidence.Segment.Id}" : WindowSignature.Of(a.Evidence.Segment))
+            .Select(g => (Key: g.Key, Latest: g.MaxBy(a => a.Evidence.Segment.EndUtc)!, TimeSpent: g.Aggregate(TimeSpan.Zero, (sum, a) => sum + a.Evidence.Segment.Duration)))
+            .OrderByDescending(c => c.Latest.Evidence.Segment.EndUtc);
+
+        foreach (var (key, latest, timeSpent) in candidates)
         {
-            if (window.TimeSpent < MinimumTimeBeforeAsking
-                || _asked.Contains(window.Signature)
-                || !labels.TryGetValue(window.Signature, out var label)
-                || label.Source is LabelSource.User or LabelSource.Rule
-                || label.Confidence >= setup.Options.ConfidenceThreshold)
+            if (timeSpent < MinimumTimeBeforeAsking
+                || _asked.Contains(key)
+                || latest.Reason is AttributionReason.UserAnswer or AttributionReason.NameInWindow or AttributionReason.Leisure
+                || (latest.IsKnown && latest.Confidence >= setup.Options.ConfidenceThreshold))
             {
                 continue;
             }
 
-            var segment = window.Evidence.Segment;
+            var segment = latest.Evidence.Segment;
             return new WindowQuestion(
-                window.Signature,
+                WindowSignature.Of(segment),
+                DayAttribution.IsShared(segment) ? segment.Id : null,
                 segment.ProcessName,
                 segment.WindowTitle ?? "",
-                label.Client is WindowClassifier.InternalLabel or WindowClassifier.NotWorkLabel ? null : label.Client,
+                latest.IsClient ? latest.Client : null,
                 clients.Select(c => c.Name).ToList());
         }
 
         return null;
     }
 
-    private sealed record Window(string Signature, SegmentEvidence Evidence, TimeSpan TimeSpent, DateTime LastSeenUtc);
+    private static TimeSpan TimeSpent(IEnumerable<SegmentEvidence> active, string signature) =>
+        active
+            .Where(e => WindowSignature.Of(e.Segment) == signature)
+            .Aggregate(TimeSpan.Zero, (sum, e) => sum + e.Segment.Duration);
 }

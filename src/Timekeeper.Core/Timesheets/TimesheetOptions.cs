@@ -9,6 +9,15 @@ public sealed record TimesheetOptions
 
     public int RoundingMinutes { get; init; } = 15;
 
+    /// <summary>Round up to the next step, as for a started quarter, rather than to the nearest.</summary>
+    public bool RoundUp { get; init; } = true;
+
+    /// <summary>
+    /// Less time than this for a client during the day is left out, so a glance at a client's
+    /// file does not become a whole rounded-up step.
+    /// </summary>
+    public int MinimumMinutes { get; init; } = 3;
+
     /// <summary>Classifications below this confidence are escalated, and flagged for review.</summary>
     public double ConfidenceThreshold { get; init; } = 0.75;
 

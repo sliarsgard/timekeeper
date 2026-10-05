@@ -31,6 +31,14 @@ public sealed class SqliteTimesheetStore : ITimesheetStore, ILabelStore
             confidence REAL NOT NULL,
             source TEXT NOT NULL
         );
+
+        CREATE TABLE IF NOT EXISTS occasion_labels (
+            segment_id INTEGER PRIMARY KEY,
+            signature TEXT NOT NULL,
+            client TEXT NOT NULL,
+            confidence REAL NOT NULL,
+            source TEXT NOT NULL
+        );
         """;
 
     // Keywords are kept as one line of text, the way the user types them.
@@ -43,6 +51,7 @@ public sealed class SqliteTimesheetStore : ITimesheetStore, ILabelStore
         _connectionString = ConnectionString(databasePath);
         using var connection = Open();
         Command(connection, Schema).ExecuteNonQuery();
+        AddColumnIfMissing(connection, "timesheet_entries", "recorded_minutes", "INTEGER");
     }
 
     public IReadOnlyList<Client> GetClients()
@@ -96,7 +105,7 @@ public sealed class SqliteTimesheetStore : ITimesheetStore, ILabelStore
         using var connection = Open();
         using var reader = Command(
                 connection,
-                "SELECT id, client, activity, minutes, comment, confidence FROM timesheet_entries WHERE date = $date ORDER BY id",
+                "SELECT id, client, activity, minutes, comment, confidence, recorded_minutes FROM timesheet_entries WHERE date = $date ORDER BY id",
                 ("$date", ToDb(date)))
             .ExecuteReader();
 
@@ -112,6 +121,7 @@ public sealed class SqliteTimesheetStore : ITimesheetStore, ILabelStore
                 Minutes = reader.GetInt32(3),
                 Comment = reader.GetString(4),
                 Confidence = reader.IsDBNull(5) ? null : reader.GetDouble(5),
+                RecordedMinutes = reader.IsDBNull(6) ? null : reader.GetInt32(6),
             });
         }
 
@@ -144,7 +154,8 @@ public sealed class SqliteTimesheetStore : ITimesheetStore, ILabelStore
                 connection,
                 """
                 UPDATE timesheet_entries
-                SET client = $client, activity = $activity, minutes = $minutes, comment = $comment, confidence = $confidence
+                SET client = $client, activity = $activity, minutes = $minutes, comment = $comment,
+                    confidence = $confidence, recorded_minutes = $recorded
                 WHERE id = $id
                 """,
                 ("$client", entry.Client),
@@ -152,6 +163,7 @@ public sealed class SqliteTimesheetStore : ITimesheetStore, ILabelStore
                 ("$minutes", entry.Minutes),
                 ("$comment", entry.Comment),
                 ("$confidence", entry.Confidence),
+                ("$recorded", entry.RecordedMinutes),
                 ("$id", entry.Id))
             .ExecuteNonQuery();
     }
@@ -198,13 +210,71 @@ public sealed class SqliteTimesheetStore : ITimesheetStore, ILabelStore
             .ExecuteNonQuery();
     }
 
+    public IReadOnlyDictionary<long, WindowLabel> GetOccasionLabels(long fromSegmentId, long toSegmentId)
+    {
+        using var connection = Open();
+        using var reader = Command(
+                connection,
+                """
+                SELECT segment_id, signature, client, confidence, source FROM occasion_labels
+                WHERE segment_id BETWEEN $from AND $to
+                """,
+                ("$from", fromSegmentId),
+                ("$to", toSegmentId))
+            .ExecuteReader();
+
+        var labels = new Dictionary<long, WindowLabel>();
+        while (reader.Read())
+        {
+            labels[reader.GetInt64(0)] = new WindowLabel(
+                reader.GetString(1),
+                reader.GetString(2),
+                reader.GetDouble(3),
+                Enum.Parse<LabelSource>(reader.GetString(4)));
+        }
+
+        return labels;
+    }
+
+    public void SaveOccasionLabel(long segmentId, WindowLabel label)
+    {
+        using var connection = Open();
+        Command(
+                connection,
+                """
+                INSERT INTO occasion_labels (segment_id, signature, client, confidence, source)
+                VALUES ($segment, $signature, $client, $confidence, $source)
+                ON CONFLICT (segment_id) DO UPDATE
+                SET signature = excluded.signature, client = excluded.client,
+                    confidence = excluded.confidence, source = excluded.source
+                """,
+                ("$segment", segmentId),
+                ("$signature", label.Signature),
+                ("$client", label.Client),
+                ("$confidence", label.Confidence),
+                ("$source", label.Source.ToString()))
+            .ExecuteNonQuery();
+    }
+
+    /// <summary>Upgrades databases created by earlier versions.</summary>
+    private static void AddColumnIfMissing(SqliteConnection connection, string table, string column, string type)
+    {
+        using var reader = Command(connection, $"SELECT 1 FROM pragma_table_info('{table}') WHERE name = $column", ("$column", column))
+            .ExecuteReader();
+        if (!reader.Read())
+        {
+            reader.Close();
+            Command(connection, $"ALTER TABLE {table} ADD COLUMN {column} {type}").ExecuteNonQuery();
+        }
+    }
+
     private static void Insert(SqliteConnection connection, TimesheetEntry entry)
     {
         entry.Id = (long)Command(
                 connection,
                 """
-                INSERT INTO timesheet_entries (date, client, activity, minutes, comment, confidence)
-                VALUES ($date, $client, $activity, $minutes, $comment, $confidence)
+                INSERT INTO timesheet_entries (date, client, activity, minutes, comment, confidence, recorded_minutes)
+                VALUES ($date, $client, $activity, $minutes, $comment, $confidence, $recorded)
                 RETURNING id
                 """,
                 ("$date", ToDb(entry.Date)),
@@ -212,7 +282,8 @@ public sealed class SqliteTimesheetStore : ITimesheetStore, ILabelStore
                 ("$activity", entry.Activity),
                 ("$minutes", entry.Minutes),
                 ("$comment", entry.Comment),
-                ("$confidence", entry.Confidence))
+                ("$confidence", entry.Confidence),
+                ("$recorded", entry.RecordedMinutes))
             .ExecuteScalar()!;
     }
 

@@ -10,6 +10,22 @@ public static class WindowKinds
 
     private static readonly string[] LeisurePrograms = ["Spotify", "Netflix", "Discord", "steam"];
 
+    // Programs and sites where the same window shows work for many clients.
+    private static readonly string[] SharedPrograms = ["olk", "OUTLOOK", "ms-teams", "Teams", "explorer"];
+
+    private static readonly string[] SharedSites =
+        ["fortnox.se", "blikk.", "skatteverket.se", "bolagsverket.se", "outlook.office", "outlook.live", "teams.microsoft.com"];
+
+    /// <summary>
+    /// A window whose title looks the same whatever client it is used for, like Fortnox, the
+    /// Outlook inbox or Teams. What it was used for has to be judged each time from what is on
+    /// screen and what the user did around it.
+    /// </summary>
+    public static bool IsShared(string? processName, string? title, string? url) =>
+        (processName is not null && SharedPrograms.Contains(processName, StringComparer.OrdinalIgnoreCase))
+        || (url is not null && SharedSites.Any(site => url.Contains(site, StringComparison.OrdinalIgnoreCase)))
+        || (title?.Contains("Fortnox", StringComparison.OrdinalIgnoreCase) ?? false);
+
     /// <summary>A video call or meeting window, where sitting still for a long time is normal.</summary>
     public static bool IsMeeting(string? processName, string? title, string? url)
     {

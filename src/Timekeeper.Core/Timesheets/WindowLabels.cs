@@ -18,6 +18,9 @@ public enum LabelSource
     /// <summary>Decided by Jev or Luna.</summary>
     Model,
 
+    /// <summary>Exactly one client's name or keyword appears in the text read from the screen.</summary>
+    Screen,
+
     /// <summary>The user said so. Always wins.</summary>
     User,
 }
@@ -35,4 +38,13 @@ public interface ILabelStore
 
     /// <summary>Inserts or replaces the label for the label's signature.</summary>
     void SaveLabel(WindowLabel label);
+
+    /// <summary>
+    /// Labels for single occasions of shared windows (see <see cref="WindowKinds.IsShared"/>),
+    /// keyed by segment id, for segments with ids in the given range.
+    /// </summary>
+    IReadOnlyDictionary<long, WindowLabel> GetOccasionLabels(long fromSegmentId, long toSegmentId);
+
+    /// <summary>Inserts or replaces the label for one occasion of a shared window.</summary>
+    void SaveOccasionLabel(long segmentId, WindowLabel label);
 }

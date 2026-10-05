@@ -14,7 +14,10 @@ public class TimesheetBuilderTests
         new(2, "Svensson Bygg AB", ["556677-8899"]),
     ];
 
-    private static readonly TimesheetOptions Options = new() { RoundingMinutes = 15 };
+    // Most tests here are about attribution; rounding to the nearest step keeps their numbers simple.
+    private static readonly TimesheetOptions Options = new() { RoundingMinutes = 15, RoundUp = false };
+
+    private static long _nextId;
 
     private static SegmentEvidence Segment(
         int startMinute,
@@ -26,6 +29,7 @@ public class TimesheetBuilderTests
         new(
             new ActivitySegment
             {
+                Id = Interlocked.Increment(ref _nextId),
                 StartUtc = T0.AddMinutes(startMinute),
                 EndUtc = T0.AddMinutes(startMinute + minutes),
                 State = state,
@@ -195,12 +199,12 @@ public class TimesheetBuilderTests
     {
         using var database = new TempDatabase();
         var labels = new Timekeeper.Data.SqliteTimesheetStore(database.Path);
-        var fortnox = Segment(30, 30, "Fortnox");
-        labels.SaveLabel(new WindowLabel(WindowSignature.Of(fortnox.Segment), "Svensson Bygg AB", 0.8, LabelSource.Model));
+        var ledger = Segment(30, 30, "Leverantörsreskontra");
+        labels.SaveLabel(new WindowLabel(WindowSignature.Of(ledger.Segment), "Svensson Bygg AB", 0.8, LabelSource.Model));
         var builder = new TimesheetBuilder(Options, new CountingDecisionModel(new Decision("Internt", 1)), null, labels);
 
         var preview = builder.Preview(
-            [Segment(0, 30, "Bageriet.xlsx"), fortnox, Segment(60, 22, "Inkorg - Outlook", process: "olk")],
+            [Segment(0, 30, "Bageriet.xlsx"), ledger, Segment(60, 22, "Inkorg - Outlook", process: "olk")],
             Clients);
 
         Assert.Equal(
@@ -247,6 +251,63 @@ public class TimesheetBuilderTests
 
         var entry = Assert.Single(entries);
         Assert.Equal(("Bageriet i Lund AB", 60), (entry.Client, entry.Minutes));
+    }
+
+    [Fact]
+    public async Task By_default_time_is_rounded_up_to_a_started_quarter_and_the_recorded_time_is_kept()
+    {
+        var builder = new TimesheetBuilder(new TimesheetOptions(), null, null);
+
+        var entries = await builder.BuildAsync(
+            Day,
+            [Segment(0, 16, "Bageriet.xlsx"), Segment(60, 15, "Svensson offert 556677-8899.docx", process: "WINWORD")],
+            Clients);
+
+        Assert.Equal(
+            [("Bageriet i Lund AB", 30, 16), ("Svensson Bygg AB", 15, 15)],
+            entries.Select(e => (e.Client, e.Minutes, e.RecordedMinutes!.Value)));
+    }
+
+    [Fact]
+    public async Task A_glance_at_a_client_is_not_rounded_up_to_a_quarter()
+    {
+        var builder = new TimesheetBuilder(new TimesheetOptions(), null, null);
+
+        var entries = await builder.BuildAsync(Day, [Segment(0, 30, "Bageriet.xlsx"), Segment(40, 2, "Svensson 556677-8899.pdf")], Clients);
+
+        Assert.Equal("Bageriet i Lund AB", Assert.Single(entries).Client);
+    }
+
+    [Fact]
+    public async Task Shared_window_is_classified_per_occasion_with_the_surrounding_work_as_context()
+    {
+        var luna = new RecordingLanguageModel(new Decision("Bageriet i Lund AB", 0.9));
+        var builder = new TimesheetBuilder(Options, null, luna);
+
+        await builder.BuildAsync(
+            Day,
+            [Segment(0, 20, "Bageriet.xlsx"), Segment(20, 20, "Bokföring - Fortnox", process: "msedge"), Segment(40, 20, "Bokföring - Fortnox", process: "msedge")],
+            Clients);
+
+        Assert.Equal(2, luna.Contexts.Count);
+        Assert.Contains(luna.Contexts, c => c.Contains("Arbete strax före och efter") && c.Contains("→ Bageriet i Lund AB"));
+    }
+
+    private sealed class RecordingLanguageModel(Decision answer) : ILanguageModel
+    {
+        public List<string> Contexts { get; } = [];
+
+        public Task<Decision> ChooseAsync(string question, string context, IReadOnlyList<string> options, string? imagePath, CancellationToken cancellationToken)
+        {
+            if (question.Contains("client company"))
+            {
+                Contexts.Add(context);
+            }
+
+            return Task.FromResult(answer);
+        }
+
+        public Task<string> WriteCommentAsync(string context, CancellationToken cancellationToken) => Task.FromResult("Kommentar");
     }
 
     private sealed class FakeDecisionModel(Decision answer) : IDecisionModel

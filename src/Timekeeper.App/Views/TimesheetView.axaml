@@ -148,18 +148,19 @@
         <!-- Entries -->
         <Border Grid.Row="3" Classes="card appear" Padding="0" IsVisible="{Binding HasEntries}">
             <Grid RowDefinitions="Auto,*">
-                <Grid ColumnDefinitions="2*,1.7*,96,2.6*,76" Margin="20,14,20,8">
+                <Grid ColumnDefinitions="2*,1.7*,96,84,2.6*,76" Margin="20,14,20,8">
                     <TextBlock Classes="label" Text="Kund" />
                     <TextBlock Grid.Column="1" Classes="label" Text="Aktivitet" Margin="10,0,0,0" />
                     <TextBlock Grid.Column="2" Classes="label" Text="Timmar" Margin="10,0,0,0" />
-                    <TextBlock Grid.Column="3" Classes="label" Text="Kommentar" Margin="10,0,0,0" />
+                    <TextBlock Grid.Column="3" Classes="label" Text="Faktisk tid" Margin="10,0,0,0" />
+                    <TextBlock Grid.Column="4" Classes="label" Text="Kommentar" Margin="10,0,0,0" />
                 </Grid>
                 <ScrollViewer Grid.Row="1">
                     <ItemsControl ItemsSource="{Binding Entries}" Margin="12,0,12,12">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="vm:TimesheetEntryViewModel">
                                 <Border CornerRadius="10" Padding="8,6" Margin="0,2" Classes="appear">
-                                    <Grid ColumnDefinitions="2*,1.7*,96,2.6*,76">
+                                    <Grid ColumnDefinitions="2*,1.7*,96,84,2.6*,76">
                                         <AutoCompleteBox Text="{Binding Client}"
                                                          ItemsSource="{Binding $parent[ItemsControl].((vm:TimesheetPageViewModel)DataContext).ClientNames}"
                                                          FilterMode="ContainsOrdinal"
@@ -170,8 +171,10 @@
                                         <NumericUpDown Grid.Column="2" Margin="10,0,0,0" Value="{Binding Hours}"
                                                        Increment="0.25" Minimum="0" Maximum="24" FormatString="0.00"
                                                        ShowButtonSpinner="False" HorizontalContentAlignment="Right" />
-                                        <TextBox Grid.Column="3" Margin="10,0,0,0" Text="{Binding Comment}" PlaceholderText="Vad gjordes?" />
-                                        <StackPanel Grid.Column="4" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="2">
+                                        <TextBlock Grid.Column="3" Margin="10,0,0,0" Text="{Binding Recorded}" Classes="muted"
+                                                   VerticalAlignment="Center" />
+                                        <TextBox Grid.Column="4" Margin="10,0,0,0" Text="{Binding Comment}" PlaceholderText="Vad gjordes?" />
+                                        <StackPanel Grid.Column="5" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="2">
                                             <Border Classes="pill warning" IsVisible="{Binding IsUncertain}" VerticalAlignment="Center"
                                                     ToolTip.Tip="{Binding ConfidenceTooltip}" Padding="7,4">
                                                 <TextBlock Classes="icon" Text="&#xE7BA;" FontSize="12" />

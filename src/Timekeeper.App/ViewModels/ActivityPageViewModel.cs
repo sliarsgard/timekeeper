@@ -185,22 +185,31 @@ public sealed partial class ActivityPageViewModel : PageViewModel
         UpdateTimeline(segments);
     }
 
-    /// <summary>Shows each row's client and a rough split of the day per client.</summary>
-    /// <remarks>Rough because short detours are only folded into the surrounding client in the timesheet.</remarks>
+    /// <summary>
+    /// Shows each row's client and why, attributed exactly as the timesheet does, and the day's
+    /// time per client.
+    /// </summary>
+    /// <remarks>Rough per client, because short detours are only folded into the surrounding client in the timesheet.</remarks>
     private void UpdateClients(IReadOnlyList<ActivitySegment> segments)
     {
-        var labels = _labels.GetLabels();
+        var active = TimesheetBuilder.Active(Evidence.Gather(_store, Day.StartUtc, Day.EndUtc));
+        var classifier = new WindowClassifier(new TimesheetOptions(), null, null, _timesheets.GetClients());
+        var day = new StoredLabels(_labels, active).Attribute(active, classifier).ToDictionary(a => a.Evidence.Segment.Id);
+
         var perClient = new Dictionary<string, TimeSpan>();
-        foreach (var segment in segments.Where(s => s.State == ActivityState.Active))
+        foreach (var segment in segments)
         {
-            var client = labels.TryGetValue(WindowSignature.Of(segment), out var label) ? label.Client : null;
+            day.TryGetValue(segment.Id, out var attribution);
             if (_rowsById.TryGetValue(segment.Id, out var row))
             {
-                row.Client = client;
+                row.SetAttribution(attribution);
             }
 
-            var key = client ?? Unclassified;
-            perClient[key] = perClient.GetValueOrDefault(key) + segment.Duration;
+            if (attribution is not null)
+            {
+                var key = attribution.IsKnown ? attribution.Client : Unclassified;
+                perClient[key] = perClient.GetValueOrDefault(key) + segment.Duration;
+            }
         }
 
         ClientsToday = perClient

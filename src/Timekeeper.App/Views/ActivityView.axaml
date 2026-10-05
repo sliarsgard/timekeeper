@@ -137,6 +137,12 @@
                                         <TextBlock Text="{Binding Row.Duration}" Classes="muted" />
                                     </StackPanel>
                                     <TextBlock Text="{Binding Row.Title}" TextWrapping="Wrap" Classes="secondary" MaxLines="3" />
+                                    <TextBlock FontSize="12" TextWrapping="Wrap" IsVisible="{Binding !Row.IsAway}" Margin="0,2,0,0">
+                                        <Run Text="{Binding Row.Client, TargetNullValue='Ingen kund ännu'}" FontWeight="SemiBold"
+                                             Foreground="{DynamicResource AccentBrush}" />
+                                        <Run Text=" · " Foreground="{DynamicResource TextMutedBrush}" />
+                                        <Run Text="{Binding Row.Reason}" Foreground="{DynamicResource TextMutedBrush}" />
+                                    </TextBlock>
                                     <SelectableTextBlock Text="{Binding Row.Detail}" IsVisible="{Binding Row.HasDetail}"
                                                          TextWrapping="Wrap" FontSize="12" Foreground="{DynamicResource TextMutedBrush}" />
                                 </StackPanel>

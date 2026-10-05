@@ -6,6 +6,8 @@ namespace Timekeeper.App.ViewModels;
 
 public sealed record ThemeOption(AppTheme Theme, string Label);
 
+public sealed record RoundingOption(bool Up, string Label);
+
 public sealed partial class SettingsPageViewModel : PageViewModel
 {
     private readonly Func<AppSettings> _current;
@@ -38,6 +40,12 @@ public sealed partial class SettingsPageViewModel : PageViewModel
 
     [ObservableProperty]
     private int _roundingMinutes;
+
+    [ObservableProperty]
+    private RoundingOption? _rounding;
+
+    [ObservableProperty]
+    private decimal? _minimumMinutes;
 
     [ObservableProperty]
     private string _activities = "";
@@ -73,6 +81,12 @@ public sealed partial class SettingsPageViewModel : PageViewModel
 
     public IReadOnlyList<int> RoundingOptions { get; } = [1, 5, 6, 10, 15, 30];
 
+    public IReadOnlyList<RoundingOption> RoundingModes { get; } =
+    [
+        new(true, "uppåt (påbörjad)"),
+        new(false, "till närmaste"),
+    ];
+
     public IReadOnlyList<ThemeOption> ThemeOptions { get; } =
     [
         new(AppTheme.System, "Följ Windows"),
@@ -102,6 +116,8 @@ public sealed partial class SettingsPageViewModel : PageViewModel
             AskWhenUnsure = AskWhenUnsure,
             ConfidenceThreshold = Math.Round(ConfidenceThreshold, 2),
             RoundingMinutes = RoundingMinutes,
+            RoundUp = Rounding?.Up ?? true,
+            MinimumMinutes = (int)(MinimumMinutes ?? 3),
             Activities = activities.Count > 0 ? activities : new AppSettings().Activities,
             DefaultActivity = activities.Contains(DefaultActivity) ? DefaultActivity : activities.FirstOrDefault() ?? "",
             IdleMinutes = (int)(IdleMinutes ?? 5),
@@ -130,6 +146,8 @@ public sealed partial class SettingsPageViewModel : PageViewModel
         AskWhenUnsure = settings.AskWhenUnsure;
         ConfidenceThreshold = settings.ConfidenceThreshold;
         RoundingMinutes = settings.RoundingMinutes;
+        Rounding = RoundingModes.First(o => o.Up == settings.RoundUp);
+        MinimumMinutes = settings.MinimumMinutes;
         Activities = string.Join(", ", settings.Activities);
         DefaultActivity = settings.DefaultActivity;
         IdleMinutes = settings.IdleMinutes;

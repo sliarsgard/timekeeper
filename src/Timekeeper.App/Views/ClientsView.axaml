@@ -31,7 +31,7 @@
         </Grid>
 
         <TextBlock Grid.Row="1" Classes="secondary" TextWrapping="Wrap" Margin="0,0,0,16" MaxWidth="760" HorizontalAlignment="Left"
-                   Text="Kunderna känns igen på namn och sökord i fönstertitlar, filsökvägar, webbadresser och skärmtext. Lägg till kortnamn, organisationsnummer eller namnet på kundmappen i SharePoint som sökord." />
+                   Text="Kunderna känns igen på namn och sökord i fönstertitlar, filsökvägar, webbadresser och skärmtext. Bra sökord är kortnamn, organisationsnummer, kundmappens namn i SharePoint, bolagsnamnet som det står i Fortnox och kundens e-postdomän, t.ex. @bageriet.se." />
 
         <!-- Paste a list -->
         <Border Grid.Row="2" Classes="card appear" Margin="0,0,0,16" IsVisible="{Binding IsImportOpen}">

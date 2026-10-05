@@ -15,8 +15,10 @@ public sealed record PreviewEntry(string Client, int Minutes, TimeSpan TimeSpent
 /// activity and a short comment.
 /// </summary>
 /// <remarks>
-/// Each distinct window is classified once by <see cref="WindowClassifier"/>. With a label store,
-/// windows already classified during the day are not sent to a model again.
+/// Ordinary windows are classified once per window and shared windows (Fortnox, Outlook, Teams)
+/// once per occasion, by <see cref="WindowClassifier"/> with the surrounding work as context. With
+/// a label store, what was classified during the day is not sent to a model again. The day is then
+/// attributed by <see cref="DayAttribution"/>, the same way as the preliminary timesheet.
 /// </remarks>
 public sealed class TimesheetBuilder(
     TimesheetOptions options,
@@ -31,6 +33,9 @@ public sealed class TimesheetBuilder(
     /// <summary>Windows not yet classified during the day, shown separately in the preview.</summary>
     public const string UnclassifiedLabel = "Ej klassat ännu";
 
+    /// <summary>Shorter occasions of shared windows are left to the surrounding work rather than a model.</summary>
+    private static readonly TimeSpan MinimumOccasionTime = TimeSpan.FromSeconds(30);
+
     private const string ActivityQuestion = "Which kind of accounting work does this activity describe?";
     private const int MaxSummaryLines = 12;
 
@@ -43,27 +48,30 @@ public sealed class TimesheetBuilder(
     {
         var active = Active(evidence);
         var classifier = new WindowClassifier(options, decisionModel, languageModel, clients);
-        var known = labelStore?.GetLabels() ?? new Dictionary<string, WindowLabel>();
+        var labels = new StoredLabels(labelStore, active);
+        var day = labels.Attribute(active, classifier);
 
-        // People switch back and forth between the same few windows; classify each window once.
-        var windows = active.GroupBy(e => WindowSignature.Of(e.Segment)).ToList();
-        var labels = new Dictionary<string, Decision>();
-        for (var i = 0; i < windows.Count; i++)
+        if (classifier.HasModels)
         {
-            progress?.Report(new TimesheetProgress(i, windows.Count, "Klassificerar fönster"));
-            var representative = windows[i].FirstOrDefault(e => e.OcrText is not null) ?? windows[i].First();
-            known.TryGetValue(windows[i].Key, out var previous);
-            var label = await classifier.ClassifyAsync(representative, previous, cancellationToken);
-            if (label != previous)
+            var pending = Pending(active, classifier, labels, MinimumOccasionTime);
+            for (var i = 0; i < pending.Count; i++)
             {
-                labelStore?.SaveLabel(label);
+                progress?.Report(new TimesheetProgress(i, pending.Count, "Klassificerar fönster"));
+                var index = pending[i];
+                var segment = active[index].Segment;
+                var label = await classifier.ClassifyAsync(
+                    active[index],
+                    labels.For(segment),
+                    DayAttribution.Surroundings(day, index),
+                    cancellationToken);
+                labels.Save(segment, label);
             }
 
-            labels[windows[i].Key] = label.ToDecision();
+            day = labels.Attribute(active, classifier);
         }
 
         // Time that is not work stays out of the timesheet.
-        var groups = Group(active, labels).Where(g => g.Client != NotWorkLabel).ToList();
+        var groups = Group(day, unknownLabel: InternalLabel).Where(g => g.Client != NotWorkLabel).ToList();
 
         var entries = new List<TimesheetEntry>();
         for (var i = 0; i < groups.Count; i++)
@@ -79,6 +87,7 @@ public sealed class TimesheetBuilder(
                 Client = client,
                 Activity = activity,
                 Minutes = minutes,
+                RecordedMinutes = (int)Math.Round(Sum(segments).TotalMinutes),
                 Comment = await WriteCommentAsync(client, activity, summary, segments, cancellationToken),
                 Confidence = WeightedConfidence(segments),
             });
@@ -90,24 +99,15 @@ public sealed class TimesheetBuilder(
 
     /// <summary>
     /// A preliminary timesheet from what is already known, without asking any model, so it is
-    /// cheap enough to refresh continuously. Windows the background classification has not reached
-    /// yet are grouped as <see cref="UnclassifiedLabel"/>.
+    /// cheap enough to refresh continuously. Work is attributed exactly as in the final draft;
+    /// segments nothing is known about yet are grouped as <see cref="UnclassifiedLabel"/>.
     /// </summary>
     public IReadOnlyList<PreviewEntry> Preview(IReadOnlyList<SegmentEvidence> evidence, IReadOnlyList<Client> clients)
     {
         var active = Active(evidence);
-        var classifier = new WindowClassifier(options, null, null, clients);
-        var known = labelStore?.GetLabels() ?? new Dictionary<string, WindowLabel>();
+        var day = new StoredLabels(labelStore, active).Attribute(active, new WindowClassifier(options, null, null, clients));
 
-        var labels = new Dictionary<string, Decision>();
-        foreach (var window in active.GroupBy(e => WindowSignature.Of(e.Segment)))
-        {
-            known.TryGetValue(window.Key, out var previous);
-            var label = classifier.ClassifyWithoutModels(window.First(), previous);
-            labels[window.Key] = label?.ToDecision() ?? new Decision(UnclassifiedLabel, 0);
-        }
-
-        return Group(active, labels)
+        return Group(day, unknownLabel: UnclassifiedLabel)
             .Select(g => new PreviewEntry(
                 g.Client,
                 g.Minutes,
@@ -117,18 +117,53 @@ public sealed class TimesheetBuilder(
             .ToList();
     }
 
-    private static List<SegmentEvidence> Active(IReadOnlyList<SegmentEvidence> evidence) =>
+    /// <summary>Active segments in time order: what <see cref="DayAttribution"/> works on.</summary>
+    public static List<SegmentEvidence> Active(IReadOnlyList<SegmentEvidence> evidence) =>
         evidence
             .Where(e => e.Segment.State == ActivityState.Active && e.Segment.Duration > TimeSpan.Zero)
             .OrderBy(e => e.Segment.StartUtc)
             .ToList();
 
+    /// <summary>
+    /// Indexes of segments a model should look at: one per ordinary window and one per occasion of a
+    /// shared window that is long enough, where nothing is known without a model.
+    /// </summary>
+    public static List<int> Pending(
+        IReadOnlyList<SegmentEvidence> active,
+        WindowClassifier classifier,
+        StoredLabels labels,
+        TimeSpan minimumOccasionTime)
+    {
+        var pending = new List<int>();
+        var seenWindows = new HashSet<string>();
+        for (var i = active.Count - 1; i >= 0; i--)
+        {
+            var segment = active[i].Segment;
+            if (classifier.ClassifyWithoutModels(active[i], labels.For(segment)) is not null)
+            {
+                continue;
+            }
+
+            if (DayAttribution.IsShared(segment)
+                ? segment.Duration >= minimumOccasionTime
+                : seenWindows.Add(WindowSignature.Of(segment)))
+            {
+                pending.Add(i);
+            }
+        }
+
+        // Most recent first, so the end of the day is ready soonest.
+        return pending;
+    }
+
     /// <summary>Folds short detours into the surrounding client, then sums and rounds per client.</summary>
     private List<(string Client, List<LabelledSegment> Segments, int Minutes)> Group(
-        IReadOnlyList<SegmentEvidence> active,
-        IReadOnlyDictionary<string, Decision> labels)
+        IReadOnlyList<AttributedSegment> day,
+        string unknownLabel)
     {
-        var labelled = active.Select(e => new LabelledSegment(e, labels[WindowSignature.Of(e.Segment)])).ToList();
+        var labelled = day
+            .Select(a => new LabelledSegment(a.Evidence, new Decision(a.IsKnown ? a.Client : unknownLabel, a.Confidence)))
+            .ToList();
         AbsorbInterruptions(labelled);
 
         return labelled
@@ -214,10 +249,22 @@ public sealed class TimesheetBuilder(
         }
     }
 
+    /// <summary>
+    /// Rounds a client's time for the day to whole steps: up to the next started step by default,
+    /// otherwise to the nearest. Time under the minimum is left out.
+    /// </summary>
     private int Round(TimeSpan duration)
     {
-        var increments = Math.Round(duration.TotalMinutes / options.RoundingMinutes, MidpointRounding.AwayFromZero);
-        return (int)increments * options.RoundingMinutes;
+        var minutes = Math.Round(duration.TotalMinutes);
+        if (minutes < options.MinimumMinutes)
+        {
+            return 0;
+        }
+
+        var steps = options.RoundUp
+            ? Math.Ceiling(minutes / options.RoundingMinutes)
+            : Math.Round(minutes / options.RoundingMinutes, MidpointRounding.AwayFromZero);
+        return (int)steps * options.RoundingMinutes;
     }
 
     private static TimeSpan Sum(IEnumerable<LabelledSegment> segments) =>
@@ -269,4 +316,43 @@ public sealed class TimesheetBuilder(
         public SegmentEvidence Evidence { get; } = evidence;
         public Decision Label { get; set; } = label;
     }
+}
+
+/// <summary>
+/// The stored labels relevant to a day, kept in step with what is saved while classifying: per
+/// window for ordinary windows and per occasion for shared ones.
+/// </summary>
+public sealed class StoredLabels
+{
+    private readonly ILabelStore? _store;
+    private readonly Dictionary<string, WindowLabel> _windows;
+    private readonly Dictionary<long, WindowLabel> _occasions;
+
+    public StoredLabels(ILabelStore? store, IReadOnlyList<SegmentEvidence> segments)
+    {
+        _store = store;
+        _windows = new Dictionary<string, WindowLabel>(store?.GetLabels() ?? new Dictionary<string, WindowLabel>());
+        _occasions = store is null || segments.Count == 0
+            ? []
+            : new Dictionary<long, WindowLabel>(store.GetOccasionLabels(segments.Min(s => s.Segment.Id), segments.Max(s => s.Segment.Id)));
+    }
+
+    public WindowLabel? For(ActivitySegment segment) => DayAttribution.StoredLabel(segment, _windows, _occasions);
+
+    public void Save(ActivitySegment segment, WindowLabel label)
+    {
+        if (DayAttribution.IsShared(segment))
+        {
+            _occasions[segment.Id] = label;
+            _store?.SaveOccasionLabel(segment.Id, label);
+        }
+        else
+        {
+            _windows[label.Signature] = label;
+            _store?.SaveLabel(label);
+        }
+    }
+
+    public IReadOnlyList<AttributedSegment> Attribute(IReadOnlyList<SegmentEvidence> active, WindowClassifier classifier) =>
+        DayAttribution.Attribute(active, classifier, _windows, _occasions);
 }

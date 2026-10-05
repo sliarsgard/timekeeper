@@ -151,7 +151,7 @@ public partial class App : Application
             return;
         }
 
-        _live!.MarkAsked(question.Signature, DateTime.UtcNow);
+        _live!.MarkAsked(question.Key, DateTime.UtcNow);
         var window = new QuestionWindow();
         window.DataContext = new QuestionViewModel(
             question,
@@ -190,7 +190,7 @@ public partial class App : Application
             _timesheetStore!.SaveClient(new Client(0, client, []));
         }
 
-        _live!.Answer(question.Signature, client);
+        _live!.Answer(question, client);
     }
 
     private void ApplyTheme(AppTheme theme)

@@ -1,5 +1,6 @@
 using System.Globalization;
 using Avalonia.Media;
+using Timekeeper.Core.Timesheets;
 
 namespace Timekeeper.App;
 
@@ -20,6 +21,23 @@ internal static class Format
     public static string Hours(decimal hours) => hours.ToString("0.00", Swedish);
 
     public static string Capitalize(string text) => text.Length == 0 ? text : char.ToUpper(text[0], Swedish) + text[1..];
+}
+
+/// <summary>Why a segment got its client, in words.</summary>
+internal static class Reasons
+{
+    public static string Describe(AttributionReason reason) => reason switch
+    {
+        AttributionReason.UserAnswer => "Ditt svar",
+        AttributionReason.Leisure => "Musik, video eller spel",
+        AttributionReason.NameInWindow => "Kundnamn i fönstret",
+        AttributionReason.NameOnScreen => "Kundnamn på skärmen",
+        AttributionReason.Ai => "AI",
+        AttributionReason.WorkBeforeAndAfter => "Samma kund före och efter",
+        AttributionReason.WorkBefore => "Fortsättning på arbetet innan",
+        AttributionReason.WorkAfter => "Inför arbetet efter",
+        _ => "Ej klassat ännu",
+    };
 }
 
 /// <summary>Readable names for the processes people use at an accounting firm.</summary>

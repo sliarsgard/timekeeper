@@ -8,6 +8,10 @@ public sealed class TimesheetEntry
     public required string Client { get; set; }
     public required string Activity { get; set; }
     public required int Minutes { get; set; }
+
+    /// <summary>The time actually recorded, before rounding. Null for rows the user added.</summary>
+    public int? RecordedMinutes { get; set; }
+
     public string Comment { get; set; } = "";
 
     /// <summary>How sure the classification was, 0–1. Null for rows the user added.</summary>

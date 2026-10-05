@@ -122,16 +122,32 @@
                         <Grid Classes="setting" ColumnDefinitions="280,*">
                             <StackPanel>
                                 <TextBlock Text="Avrundning" />
-                                <TextBlock Text="Tid per kund avrundas till närmaste steg." />
+                                <TextBlock Text="Tid per kund och dag. Den faktiska tiden visas alltid bredvid." />
                             </StackPanel>
-                            <ComboBox Grid.Column="1" ItemsSource="{Binding RoundingOptions}" SelectedItem="{Binding RoundingMinutes}" Width="160"
-                                      HorizontalAlignment="Left">
-                                <ComboBox.ItemTemplate>
-                                    <DataTemplate x:DataType="sys:Int32">
-                                        <TextBlock Text="{Binding StringFormat='{}{0} min'}" />
-                                    </DataTemplate>
-                                </ComboBox.ItemTemplate>
-                            </ComboBox>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                                <ComboBox ItemsSource="{Binding RoundingOptions}" SelectedItem="{Binding RoundingMinutes}" Width="120">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate x:DataType="sys:Int32">
+                                            <TextBlock Text="{Binding StringFormat='{}{0} min'}" />
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                                <ComboBox ItemsSource="{Binding RoundingModes}" SelectedItem="{Binding Rounding}" Width="190">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:RoundingOption">
+                                            <TextBlock Text="{Binding Label}" />
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                            </StackPanel>
+                        </Grid>
+                        <Grid Classes="setting" ColumnDefinitions="280,*">
+                            <StackPanel>
+                                <TextBlock Text="Minsta tid per kund" />
+                                <TextBlock Text="Minuter under dagen innan en kund kommer med, så att en snabb titt inte blir en hel kvart." />
+                            </StackPanel>
+                            <NumericUpDown Grid.Column="1" Value="{Binding MinimumMinutes}" Minimum="0" Maximum="30" Increment="1"
+                                           FormatString="0" Width="160" HorizontalAlignment="Left" />
                         </Grid>
                         <Grid Classes="setting" ColumnDefinitions="280,*">
                             <StackPanel>

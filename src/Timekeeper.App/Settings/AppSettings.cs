@@ -35,6 +35,11 @@ public sealed record AppSettings
     public double ConfidenceThreshold { get; init; } = 0.75;
 
     public int RoundingMinutes { get; init; } = 15;
+
+    /// <summary>Round up to a started step rather than to the nearest.</summary>
+    public bool RoundUp { get; init; } = true;
+
+    public int MinimumMinutes { get; init; } = 3;
     public IReadOnlyList<string> Activities { get; init; } = ["Löpande bokföring", "Bokslut", "Konsult"];
     public string DefaultActivity { get; init; } = "Löpande bokföring";
 
@@ -60,6 +65,8 @@ public sealed record AppSettings
         Activities = Activities,
         DefaultActivity = DefaultActivity,
         RoundingMinutes = RoundingMinutes,
+        RoundUp = RoundUp,
+        MinimumMinutes = MinimumMinutes,
         ConfidenceThreshold = ConfidenceThreshold,
         SendScreenshots = SendScreenshots,
     };

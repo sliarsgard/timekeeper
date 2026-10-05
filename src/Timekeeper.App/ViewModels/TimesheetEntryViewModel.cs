@@ -35,6 +35,9 @@ public sealed partial class TimesheetEntryViewModel : ObservableObject
 
     public bool IsUncertain { get; }
 
+    /// <summary>The time actually recorded, e.g. "1 h 12 min"; empty for rows added by hand.</summary>
+    public string Recorded => Entry.RecordedMinutes is { } minutes ? Format.Duration(TimeSpan.FromMinutes(minutes)) : "";
+
     public string ConfidenceTooltip => Entry.Confidence is { } confidence
         ? $"AI:n var {confidence:P0} säker. Kontrollera kund och tid."
         : "";
