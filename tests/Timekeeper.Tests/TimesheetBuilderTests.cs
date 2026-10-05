@@ -190,6 +190,50 @@ public class TimesheetBuilderTests
         Assert.Equal(1, jev.ClientQuestions);
     }
 
+    [Fact]
+    public void Preview_uses_what_is_already_known_and_groups_the_rest_as_unclassified()
+    {
+        using var database = new TempDatabase();
+        var labels = new Timekeeper.Data.SqliteTimesheetStore(database.Path);
+        var fortnox = Segment(30, 30, "Fortnox");
+        labels.SaveLabel(new WindowLabel(WindowSignature.Of(fortnox.Segment), "Svensson Bygg AB", 0.8, LabelSource.Model));
+        var builder = new TimesheetBuilder(Options, new CountingDecisionModel(new Decision("Internt", 1)), null, labels);
+
+        var preview = builder.Preview(
+            [Segment(0, 30, "Bageriet.xlsx"), fortnox, Segment(60, 22, "Inkorg - Outlook", process: "olk")],
+            Clients);
+
+        Assert.Equal(
+            [("Bageriet i Lund AB", 30), ("Svensson Bygg AB", 30), (TimesheetBuilder.UnclassifiedLabel, 15)],
+            preview.Select(p => (p.Client, p.Minutes)));
+        Assert.Equal(TimeSpan.FromMinutes(22), preview[2].TimeSpent);
+        Assert.Equal(0, preview[2].Confidence);
+        Assert.Equal("Bageriet.xlsx", preview[0].Summary);
+    }
+
+    [Fact]
+    public void Preview_never_asks_a_model()
+    {
+        var jev = new CountingDecisionModel(new Decision("Svensson Bygg AB", 0.9));
+        var builder = new TimesheetBuilder(Options, jev, new CountingLanguageModel(new Decision("Internt", 1)));
+
+        builder.Preview([Segment(0, 60, "Fortnox")], Clients);
+
+        Assert.Equal(0, jev.Calls);
+    }
+
+    [Fact]
+    public void Short_unclassified_detour_counts_towards_the_surrounding_client()
+    {
+        var builder = new TimesheetBuilder(Options, null, null);
+
+        var preview = builder.Preview(
+            [Segment(0, 25, "Bageriet.xlsx"), Segment(25, 2, "Fortnox"), Segment(27, 33, "Bageriet.xlsx")],
+            Clients);
+
+        Assert.Equal(("Bageriet i Lund AB", 60), (Assert.Single(preview).Client, preview[0].Minutes));
+    }
+
     private sealed class FakeDecisionModel(Decision answer) : IDecisionModel
     {
         public Task<Decision> ChooseAsync(string question, string context, IReadOnlyList<string> options, CancellationToken cancellationToken) =>

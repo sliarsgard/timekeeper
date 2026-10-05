@@ -50,6 +50,8 @@ public sealed partial class ShellViewModel : ObservableObject
 
     public ActivityPageViewModel? ActivityPage { get; private set; }
 
+    public TimesheetPageViewModel? TimesheetPage => Pages.OfType<TimesheetPageViewModel>().FirstOrDefault();
+
     public string TrackingStatus => IsTracking ? "Spårar" : "Pausad";
 
     public string PauseGlyph => IsTracking ? "" : "";
@@ -74,6 +76,33 @@ public sealed partial class ShellViewModel : ObservableObject
     {
         UpdateTodayActive();
         ActivityPage?.OnSampled();
+        RefreshVisibleTimesheet();
+    }
+
+    /// <summary>Called on the UI thread when window classifications have changed.</summary>
+    public void OnLabelsChanged()
+    {
+        ActivityPage?.OnLabelsChanged();
+        RefreshVisibleTimesheet();
+    }
+
+    /// <summary>Opens the timesheet page, e.g. from the tray menu.</summary>
+    public void ShowTimesheet()
+    {
+        if (TimesheetPage is { } page)
+        {
+            page.Day.Date = DateTime.Today;
+            SelectedPage = page;
+        }
+    }
+
+    // The preliminary timesheet is only worth recomputing while someone is looking at it.
+    private void RefreshVisibleTimesheet()
+    {
+        if (SelectedPage is TimesheetPageViewModel page)
+        {
+            page.OnActivityChanged();
+        }
     }
 
     /// <summary>Checks now and then every couple of hours; a found update downloads in the background.</summary>

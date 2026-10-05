@@ -7,17 +7,36 @@
     <Grid Margin="32,4,32,28" RowDefinitions="Auto,Auto,Auto,*,Auto">
         <v:DayHeader DataContext="{Binding Day}" Tag="TIDSLOGG" Margin="0,0,0,22" />
 
-        <!-- Error -->
-        <Border Grid.Row="1" Classes="pill danger appear" CornerRadius="10" Padding="14,10" Margin="0,0,0,14"
-                IsVisible="{Binding HasError}">
-            <Grid ColumnDefinitions="Auto,*,Auto">
-                <TextBlock Classes="icon" Text="&#xE783;" Margin="0,0,10,0" />
-                <TextBlock Grid.Column="1" Text="{Binding Error}" TextWrapping="Wrap" VerticalAlignment="Center" />
-                <Button Grid.Column="2" Classes="ghost icon" Width="28" Height="28" Command="{Binding DismissErrorCommand}">
-                    <TextBlock Classes="icon" Text="&#xE711;" FontSize="10" />
-                </Button>
-            </Grid>
-        </Border>
+        <StackPanel Grid.Row="1">
+            <!-- Error -->
+            <Border Classes="pill danger appear" CornerRadius="10" Padding="14,10" Margin="0,0,0,14"
+                    IsVisible="{Binding HasError}">
+                <Grid ColumnDefinitions="Auto,*,Auto">
+                    <TextBlock Classes="icon" Text="&#xE783;" Margin="0,0,10,0" />
+                    <TextBlock Grid.Column="1" Text="{Binding Error}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                    <Button Grid.Column="2" Classes="ghost icon" Width="28" Height="28" Command="{Binding DismissErrorCommand}">
+                        <TextBlock Classes="icon" Text="&#xE711;" FontSize="10" />
+                    </Button>
+                </Grid>
+            </Border>
+
+            <!-- Time recorded after the draft was made -->
+            <Border Classes="card appear" Padding="14,10" Margin="0,0,0,14" IsVisible="{Binding HasNewTime}">
+                <Grid ColumnDefinitions="Auto,*,Auto">
+                    <TextBlock Classes="icon" Text="&#xE823;" Foreground="{DynamicResource AccentBrush}" Margin="0,0,10,0" />
+                    <TextBlock Grid.Column="1" VerticalAlignment="Center" TextWrapping="Wrap">
+                        <Run Text="{Binding NewTime}" FontWeight="SemiBold" />
+                        <Run Text="har registrerats sedan förslaget skapades." />
+                    </TextBlock>
+                    <Button Grid.Column="2" Classes="ghost" Command="{Binding GenerateCommand}" Margin="8,0,0,0">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Classes="icon" Text="&#xE945;" FontSize="12" />
+                            <TextBlock Text="Nytt förslag" />
+                        </StackPanel>
+                    </Button>
+                </Grid>
+            </Border>
+        </StackPanel>
 
         <!-- Progress while the AI works -->
         <Border Grid.Row="2" Classes="card appear" Margin="0,0,0,14" IsVisible="{Binding IsGenerating}">
@@ -34,6 +53,73 @@
                         </Transitions>
                     </ProgressBar.Transitions>
                 </ProgressBar>
+            </Grid>
+        </Border>
+
+        <!-- Preliminary timesheet, following the day until a draft is made -->
+        <Border Grid.Row="3" Classes="card appear" Padding="0" IsVisible="{Binding ShowPreview}">
+            <Grid RowDefinitions="Auto,Auto,*,Auto">
+                <Grid ColumnDefinitions="*,Auto" Margin="20,18,20,4">
+                    <StackPanel Spacing="3">
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <TextBlock Classes="h2" Text="Preliminär tidsrapport" />
+                            <Border Classes="pill" Background="{DynamicResource AccentSoftBrush}" VerticalAlignment="Center"
+                                    IsVisible="{Binding Day.IsToday}">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <Ellipse Width="6" Height="6" Fill="{DynamicResource AccentBrush}" Classes="pulse" VerticalAlignment="Center" />
+                                    <TextBlock Text="Uppdateras löpande" FontSize="11" Foreground="{DynamicResource AccentBrush}" />
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                        <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+                                   Text="Bygger på det som redan är klassat. Skapa ett förslag för att få kommentarer och kunna redigera raderna." />
+                    </StackPanel>
+                    <Button Grid.Column="1" Classes="primary" Command="{Binding GenerateCommand}" VerticalAlignment="Top">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Classes="icon" Text="&#xE945;" FontSize="13" />
+                            <TextBlock Text="Skapa förslag" />
+                        </StackPanel>
+                    </Button>
+                </Grid>
+
+                <Grid Grid.Row="1" ColumnDefinitions="2*,90,90,3*,32" Margin="20,14,20,6">
+                    <TextBlock Classes="label" Text="Kund" />
+                    <TextBlock Grid.Column="1" Classes="label" Text="Timmar" HorizontalAlignment="Right" />
+                    <TextBlock Grid.Column="2" Classes="label" Text="Faktisk tid" HorizontalAlignment="Right" />
+                    <TextBlock Grid.Column="3" Classes="label" Text="Mest tid i" Margin="20,0,0,0" />
+                </Grid>
+
+                <ScrollViewer Grid.Row="2">
+                    <ItemsControl ItemsSource="{Binding Preview}" Margin="12,0,12,8">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:PreviewRow">
+                                <Border CornerRadius="10" Padding="8,10" Margin="0,1" Classes.dim="{Binding IsUnclassified}">
+                                    <Grid ColumnDefinitions="2*,90,90,3*,32">
+                                        <TextBlock Text="{Binding Client}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"
+                                                   VerticalAlignment="Center" />
+                                        <TextBlock Grid.Column="1" Text="{Binding Hours}" FontWeight="SemiBold" HorizontalAlignment="Right"
+                                                   VerticalAlignment="Center" />
+                                        <TextBlock Grid.Column="2" Text="{Binding TimeSpent}" Classes="muted" HorizontalAlignment="Right"
+                                                   VerticalAlignment="Center" />
+                                        <TextBlock Grid.Column="3" Text="{Binding Summary}" Classes="secondary" FontSize="13"
+                                                   TextTrimming="CharacterEllipsis" Margin="20,0,0,0" VerticalAlignment="Center" />
+                                        <Border Grid.Column="4" Classes="pill warning" IsVisible="{Binding IsUncertain}" Padding="7,4"
+                                                HorizontalAlignment="Right" ToolTip.Tip="Osäker klassning. Kontrollera när du skapar förslaget.">
+                                            <TextBlock Classes="icon" Text="&#xE7BA;" FontSize="12" />
+                                        </Border>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+
+                <Border Grid.Row="3" BorderBrush="{DynamicResource StrokeBrush}" BorderThickness="0,1,0,0" Padding="20,14">
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <TextBlock Classes="label" Text="Totalt (utan intern tid)" VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding PreviewTotal}" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Border>
             </Grid>
         </Border>
 

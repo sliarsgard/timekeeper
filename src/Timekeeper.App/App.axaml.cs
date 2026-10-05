@@ -78,7 +78,7 @@ public partial class App : Application
             };
 
             _live = new LiveClassifier(activityStore, timesheetStore, timesheetStore);
-            _live.LabelsChanged += (_, _) => Dispatcher.UIThread.Post(() => _shell.ActivityPage?.OnLabelsChanged());
+            _live.LabelsChanged += (_, _) => Dispatcher.UIThread.Post(_shell.OnLabelsChanged);
 
             _tracker.Sampled += (_, _) => Dispatcher.UIThread.Post(_shell.OnSampled);
             _shell.PropertyChanged += (_, e) =>
@@ -213,6 +213,13 @@ public partial class App : Application
         var show = new NativeMenuItem("Visa Timekeeper");
         show.Click += (_, _) => ShowMainWindow();
 
+        var timesheet = new NativeMenuItem("Preliminär tidsrapport");
+        timesheet.Click += (_, _) =>
+        {
+            _shell!.ShowTimesheet();
+            ShowMainWindow();
+        };
+
         _pauseMenuItem = new NativeMenuItem();
         _pauseMenuItem.Click += async (_, _) => await _shell!.TogglePauseCommand.ExecuteAsync(null);
         UpdatePauseMenuItem();
@@ -224,7 +231,7 @@ public partial class App : Application
         {
             Icon = new WindowIcon(AssetLoader.Open(new Uri("avares://Timekeeper/Assets/timekeeper.ico"))),
             ToolTipText = "Timekeeper",
-            Menu = new NativeMenu { show, _pauseMenuItem, new NativeMenuItemSeparator(), exit },
+            Menu = new NativeMenu { show, timesheet, _pauseMenuItem, new NativeMenuItemSeparator(), exit },
         };
         trayIcon.Clicked += (_, _) => ShowMainWindow();
         TrayIcon.SetIcons(this, [trayIcon]);

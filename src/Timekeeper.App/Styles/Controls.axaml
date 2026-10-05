@@ -266,7 +266,7 @@
         </Style.Animations>
     </Style>
 
-    <Style Selector="Grid.dim">
+    <Style Selector=":is(Control).dim">
         <Setter Property="Opacity" Value="0.5" />
     </Style>
 </Styles>

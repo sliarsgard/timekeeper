@@ -46,27 +46,13 @@ public sealed class WindowClassifier
     /// <param name="known">A previously stored label for the window, reused when still valid.</param>
     public async Task<WindowLabel> ClassifyAsync(SegmentEvidence evidence, WindowLabel? known, CancellationToken cancellationToken)
     {
+        if (ClassifyWithoutModels(evidence, known) is { } label)
+        {
+            return label;
+        }
+
         var segment = evidence.Segment;
         var signature = WindowSignature.Of(segment);
-
-        // Labels for clients that have since been removed or renamed no longer apply.
-        var stillValid = known is not null && _clientOptions.Contains(known.Client, StringComparer.OrdinalIgnoreCase);
-        if (stillValid && known!.Source == LabelSource.User)
-        {
-            return known;
-        }
-
-        var strongMatches = _matcher.FindIn(string.Join('\n', segment.WindowTitle, segment.Url, segment.DocumentPath));
-        if (strongMatches.Count == 1)
-        {
-            return new WindowLabel(signature, strongMatches[0].Name, 0.95, LabelSource.Rule);
-        }
-
-        if (stillValid && known!.Source == LabelSource.Model)
-        {
-            return known;
-        }
-
         var ocrMatches = _matcher.FindIn(evidence.OcrText);
         var context = Describe(evidence, ocrMatches);
 
@@ -93,6 +79,30 @@ public sealed class WindowClassifier
         return ocrMatches.Count == 1
             ? new WindowLabel(signature, ocrMatches[0].Name, 0.5, LabelSource.Guess)
             : new WindowLabel(signature, InternalLabel, 0, LabelSource.Guess);
+    }
+
+    /// <summary>
+    /// The answer if it is already known: what the user said, a keyword match, or a remembered
+    /// model answer. Null when a model would have to be asked.
+    /// </summary>
+    public WindowLabel? ClassifyWithoutModels(SegmentEvidence evidence, WindowLabel? known)
+    {
+        var segment = evidence.Segment;
+
+        // Labels for clients that have since been removed or renamed no longer apply.
+        var stillValid = known is not null && _clientOptions.Contains(known.Client, StringComparer.OrdinalIgnoreCase);
+        if (stillValid && known!.Source == LabelSource.User)
+        {
+            return known;
+        }
+
+        var strongMatches = _matcher.FindIn(string.Join('\n', segment.WindowTitle, segment.Url, segment.DocumentPath));
+        if (strongMatches.Count == 1)
+        {
+            return new WindowLabel(WindowSignature.Of(segment), strongMatches[0].Name, 0.95, LabelSource.Rule);
+        }
+
+        return stillValid && known!.Source == LabelSource.Model ? known : null;
     }
 
     /// <summary>Maps a free-form answer onto the option list; anything unrecognised is not a decision.</summary>

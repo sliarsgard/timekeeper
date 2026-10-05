@@ -4,6 +4,12 @@ namespace Timekeeper.Core.Timesheets;
 
 public sealed record TimesheetProgress(int Done, int Total, string Message);
 
+/// <summary>A row of the preliminary timesheet shown during the day.</summary>
+/// <param name="Minutes">Rounded the way the timesheet will be.</param>
+/// <param name="TimeSpent">The time actually recorded.</param>
+/// <param name="Summary">The windows that took the most time.</param>
+public sealed record PreviewEntry(string Client, int Minutes, TimeSpan TimeSpent, string Summary, double Confidence);
+
 /// <summary>
 /// Turns a day of recorded activity into a draft timesheet: one entry per client with time,
 /// activity and a short comment.
@@ -20,6 +26,9 @@ public sealed class TimesheetBuilder(
 {
     public const string InternalLabel = WindowClassifier.InternalLabel;
 
+    /// <summary>Windows not yet classified during the day, shown separately in the preview.</summary>
+    public const string UnclassifiedLabel = "Ej klassat ännu";
+
     private const string ActivityQuestion = "Which kind of accounting work does this activity describe?";
     private const int MaxSummaryLines = 12;
 
@@ -30,11 +39,7 @@ public sealed class TimesheetBuilder(
         IProgress<TimesheetProgress>? progress = null,
         CancellationToken cancellationToken = default)
     {
-        var active = evidence
-            .Where(e => e.Segment.State == ActivityState.Active && e.Segment.Duration > TimeSpan.Zero)
-            .OrderBy(e => e.Segment.StartUtc)
-            .ToList();
-
+        var active = Active(evidence);
         var classifier = new WindowClassifier(options, decisionModel, languageModel, clients);
         var known = labelStore?.GetLabels() ?? new Dictionary<string, WindowLabel>();
 
@@ -55,15 +60,7 @@ public sealed class TimesheetBuilder(
             labels[windows[i].Key] = label.ToDecision();
         }
 
-        var labelled = active.Select(e => new LabelledSegment(e, labels[WindowSignature.Of(e.Segment)])).ToList();
-        AbsorbInterruptions(labelled);
-
-        var groups = labelled
-            .GroupBy(l => l.Label.Choice)
-            .Select(g => (Client: g.Key, Segments: g.ToList(), Minutes: Round(Sum(g))))
-            .Where(g => g.Minutes > 0)
-            .OrderByDescending(g => g.Minutes)
-            .ToList();
+        var groups = Group(active, labels);
 
         var entries = new List<TimesheetEntry>();
         for (var i = 0; i < groups.Count; i++)
@@ -86,6 +83,57 @@ public sealed class TimesheetBuilder(
 
         progress?.Report(new TimesheetProgress(groups.Count, groups.Count, "Klar"));
         return entries;
+    }
+
+    /// <summary>
+    /// A preliminary timesheet from what is already known, without asking any model, so it is
+    /// cheap enough to refresh continuously. Windows the background classification has not reached
+    /// yet are grouped as <see cref="UnclassifiedLabel"/>.
+    /// </summary>
+    public IReadOnlyList<PreviewEntry> Preview(IReadOnlyList<SegmentEvidence> evidence, IReadOnlyList<Client> clients)
+    {
+        var active = Active(evidence);
+        var classifier = new WindowClassifier(options, null, null, clients);
+        var known = labelStore?.GetLabels() ?? new Dictionary<string, WindowLabel>();
+
+        var labels = new Dictionary<string, Decision>();
+        foreach (var window in active.GroupBy(e => WindowSignature.Of(e.Segment)))
+        {
+            known.TryGetValue(window.Key, out var previous);
+            var label = classifier.ClassifyWithoutModels(window.First(), previous);
+            labels[window.Key] = label?.ToDecision() ?? new Decision(UnclassifiedLabel, 0);
+        }
+
+        return Group(active, labels)
+            .Select(g => new PreviewEntry(
+                g.Client,
+                g.Minutes,
+                Sum(g.Segments),
+                string.Join(", ", TopWindows(g.Segments).Take(3).Select(w => w.Title)),
+                WeightedConfidence(g.Segments)))
+            .ToList();
+    }
+
+    private static List<SegmentEvidence> Active(IReadOnlyList<SegmentEvidence> evidence) =>
+        evidence
+            .Where(e => e.Segment.State == ActivityState.Active && e.Segment.Duration > TimeSpan.Zero)
+            .OrderBy(e => e.Segment.StartUtc)
+            .ToList();
+
+    /// <summary>Folds short detours into the surrounding client, then sums and rounds per client.</summary>
+    private List<(string Client, List<LabelledSegment> Segments, int Minutes)> Group(
+        IReadOnlyList<SegmentEvidence> active,
+        IReadOnlyDictionary<string, Decision> labels)
+    {
+        var labelled = active.Select(e => new LabelledSegment(e, labels[WindowSignature.Of(e.Segment)])).ToList();
+        AbsorbInterruptions(labelled);
+
+        return labelled
+            .GroupBy(l => l.Label.Choice)
+            .Select(g => (Client: g.Key, Segments: g.ToList(), Minutes: Round(Sum(g))))
+            .Where(g => g.Minutes > 0)
+            .OrderByDescending(g => g.Minutes)
+            .ToList();
     }
 
     private async Task<string> PickActivityAsync(string summary, CancellationToken cancellationToken)
@@ -136,7 +184,7 @@ public sealed class TimesheetBuilder(
         for (var i = 0; i < segments.Count; i++)
         {
             var label = segments[i].Label;
-            if (label.Choice == InternalLabel)
+            if (label.Choice is InternalLabel or UnclassifiedLabel)
             {
                 continue;
             }
